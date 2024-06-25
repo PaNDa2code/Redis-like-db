@@ -1,5 +1,5 @@
 CC=gcc
-CF=-Iinclude
+CF=-Iinclude -O3
 TARGET=bin/MyRides
 OBJ_DIR=obj/
 SRC_DIR=src/
@@ -12,7 +12,7 @@ all: $(TARGET)
 
 run: $(C_FILES)
 	@$(CC) $(CF) -o bin/MyRides $^
-	@exec bin/MyRides 
+	@./bin/MyRides
 
 gdb_debug: $(C_FILES)
 	@$(CC) $(CF) -g -o bin/MyRides $^

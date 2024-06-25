@@ -1,4 +1,5 @@
 #include "network_utils.h"
+#include <pthread.h>
 
 int main() {
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -21,21 +22,14 @@ int main() {
 
   printf("[!] Waiting for client to connect\n");
 
-  CHECK_ERROR(listen(server_fd, 5), != 0, "listen");
-
-  pthread_mutex_t accept_mutex;
-  pthread_mutex_init(&accept_mutex, NULL);
+  CHECK_ERROR(listen(server_fd, THREAD_COUNT), != 0, "listen");
 
   pthread_t thread_pool[THREAD_COUNT];
 
   for (int i = 0; i < THREAD_COUNT; ++i){
     pthread_t thread;
-    pthread_attr_t thread_attr;
-    pthread_attr_init(&thread_attr);
-    pthread_attr_setscope(&thread_attr, PTHREAD_SCOPE_SYSTEM);
-    pthread_create(&thread, &thread_attr, accept_connection_thread, &server_fd);
+    pthread_create(&thread, NULL, accept_connection_thread, &server_fd);
     thread_pool[i] = thread;
-    pthread_attr_destroy(&thread_attr);
   }
 
   for (int i = 0; i < THREAD_COUNT; ++i) {

@@ -1,8 +1,8 @@
 #include "network_utils.h"
+#include "parser.h"
 
 void *accept_connection_thread(void *pServer_fd) {
   char buffer[BUFFER_SIZE] = {0};
-  char pong[7] = "+PONG\r\n";
   struct sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
   while (1) {
@@ -19,11 +19,14 @@ void *accept_connection_thread(void *pServer_fd) {
         perror("read");
         break;
       }
-      if (bytes_read == 0) {
+      else if (bytes_read == 0) {
         printf("[*] client disconnected\n");
         break;
       }
-      send(client_fd, pong, sizeof(pong), 0);
+      linkedList_t head;
+      parse(buffer, &head);
+      if(!run_command(&head, client_fd))
+        send(client_fd, "$0\r\n\r\n", 6, 0);
       memset(buffer, 0, BUFFER_SIZE);
     }
     close(client_fd);

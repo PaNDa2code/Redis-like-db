@@ -23,6 +23,8 @@ typedef struct _linked_list {
 
 void parse(char* input, void* linkedList);
 
+void free_linked_list(linkedList_t* head);
+
 int run_command(linkedList_t* command_head, int responce_fd);
 
 #pragma end

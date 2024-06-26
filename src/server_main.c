@@ -1,8 +1,28 @@
 #include "network_utils.h"
+#include <bits/types/struct_timeval.h>
+#include <fcntl.h>
 #include <pthread.h>
 
+pthread_t thread_pool[THREAD_COUNT];
+
+int keep_threads_running = 1;
+int server_fd = 0;
+extern void signal_handler(int sig);
+
 int main() {
-  int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+  signal(SIGINT, signal_handler);
+  signal(SIGTERM, signal_handler);
+
+  struct timeval time_out;
+  time_out.tv_sec = 1;
+  time_out.tv_usec = 0;
+
+  server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+  /*int flags = fcntl(server_fd, F_GETFL, 0);*/
+  /*flags = flags | O_NONBLOCK;*/
+  /*CHECK_ERROR(fcntl(server_fd, F_SETFL, flags), != 0, "fcntl");*/
+
 
   CHECK_ERROR(server_fd, == -1, "socket");
 
@@ -24,9 +44,7 @@ int main() {
 
   CHECK_ERROR(listen(server_fd, THREAD_COUNT), != 0, "listen");
 
-  pthread_t thread_pool[THREAD_COUNT];
-
-  for (int i = 0; i < THREAD_COUNT; ++i){
+  for (int i = 0; i < THREAD_COUNT; ++i) {
     pthread_t thread;
     pthread_create(&thread, NULL, accept_connection_thread, &server_fd);
     thread_pool[i] = thread;
@@ -37,6 +55,5 @@ int main() {
   }
 
   close(server_fd);
-
   return 0;
 }

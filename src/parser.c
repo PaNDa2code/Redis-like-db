@@ -29,6 +29,9 @@ void parse(char* input, void* head) {
 }
 
 void free_linked_list(linkedList_t* head){
+  if(head->next_node->next_node != NULL) {
+    return;
+  }
   linkedList_t* current = head->next_node;
   linkedList_t* next;
   while(current->next_node != NULL) {

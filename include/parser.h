@@ -19,11 +19,13 @@ typedef struct _linked_list {
   char buffer[1];
 } linkedList_t;
 
+typedef linkedList_t* linked_list_entry_t;
 
 
-void parse(char* input, void* linkedList);
 
-void free_linked_list(linkedList_t* head);
+void parse(char* input, linked_list_entry_t* linkedList);
+
+void free_linked_list(linked_list_entry_t head);
 
 int run_command(linkedList_t* command_head, int responce_fd);
 

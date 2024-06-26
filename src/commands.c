@@ -45,14 +45,14 @@ int init_commands_hashmap() {
   return 0;
 };
 
-int run_command(linkedList_t *command_head, int responce_fd) {
+int run_command(linked_list_entry_t command_head, int responce_fd) {
   if (!hash_is_set)
     init_commands_hashmap();
-  upper(command_head->next_node->buffer);
-  int k = kh_get(str, hashmap, command_head->next_node->buffer);
+  upper(command_head->buffer);
+  int k = kh_get(str, hashmap, command_head->buffer);
 
   if (kh_exist(hashmap, k)) {
-    linkedList_t* command_arg = command_head->next_node->next_node ? (command_head->next_node->next_node) : NULL;
+    linkedList_t* command_arg = command_head->next_node;
     kh_value(hashmap, k)(command_arg, responce_fd);
   } else {
     send(responce_fd, "-ERR unknown command\r\n", 22, 0);
@@ -63,8 +63,9 @@ int run_command(linkedList_t *command_head, int responce_fd) {
 }
 
 int echo(linkedList_t *input, int responce_fd) {
-  if (input != NULL){
+  if (input == NULL){
     send(responce_fd, "$0\r\n\r\n", 6, 0);
+    return 0;
   }
   char buffer[input->length + 50];
   memset(buffer, 0, sizeof(buffer));

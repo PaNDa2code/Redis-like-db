@@ -19,16 +19,10 @@ int main() {
 
   server_fd = socket(AF_INET, SOCK_STREAM, 0);
 
-  /*int flags = fcntl(server_fd, F_GETFL, 0);*/
-  /*flags = flags | O_NONBLOCK;*/
-  /*CHECK_ERROR(fcntl(server_fd, F_SETFL, flags), != 0, "fcntl");*/
-
-
   CHECK_ERROR(server_fd, == -1, "socket");
 
   int reuse = 1;
-  CHECK_ERROR(
-      setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)),
+  CHECK_ERROR( setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)),
       < 0, "socket");
 
   struct sockaddr_in serv_addr = {
@@ -46,7 +40,7 @@ int main() {
 
   for (int i = 0; i < THREAD_COUNT; ++i) {
     pthread_t thread;
-    pthread_create(&thread, NULL, accept_connection_thread, &server_fd);
+    pthread_create(&thread, NULL, (void*)accept_connection_thread, &server_fd);
     thread_pool[i] = thread;
   }
 

@@ -33,7 +33,7 @@ void accept_connection_thread(int *pServer_fd) {
         break; // Exit loop when client disconnects
       }
 
-      linked_list_entry_t head;
+      linkedList_entry_t head;
       parse(buffer, &head);
       run_command(head, client_fd);
       memset(buffer, 0, BUFFER_SIZE); // Clear buffer for next read

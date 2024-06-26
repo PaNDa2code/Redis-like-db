@@ -1,16 +1,21 @@
 #include "khash.h"
 #include "network_utils.h"
 #include "parser.h"
+#include <bits/pthreadtypes.h>
 #include <pthread.h>
+#include <unistd.h>
 
-typedef int (*command_func_t)(linkedList_t *, int);
+typedef int (*command_func_t)(linkedList_node_t *, int);
 
-int echo(linkedList_t *input, int responce_fd);
-int ping(linkedList_t *input, int responce_fd);
-int command(linkedList_t *input, int responce_fd);
-int set(linkedList_t *input, int responce_fd);
+int echo(linkedList_node_t *input, int responce_fd);
+int ping(linkedList_node_t *input, int responce_fd);
+int command(linkedList_node_t *input, int responce_fd);
+int set(linkedList_node_t *input, int responce_fd);
+int get(linkedList_node_t *input, int responce_fd);
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t write_cond = PTHREAD_COND_INITIALIZER;
+int is_writing = 0;
 
 #define ADD_KEYVALUE(key, value)                                               \
   {                                                                            \
@@ -40,19 +45,20 @@ int init_commands_hashmap() {
   ADD_KEYVALUE("ECHO", echo);
   ADD_KEYVALUE("COMMAND", command);
   ADD_KEYVALUE("SET", set);
+  ADD_KEYVALUE("GET", get);
   hash_is_set = 1;
   printf("[*] Done\n");
   return 0;
 };
 
-int run_command(linked_list_entry_t command_head, int responce_fd) {
+int run_command(linkedList_entry_t command_head, int responce_fd) {
   if (!hash_is_set)
     init_commands_hashmap();
   upper(command_head->buffer);
   int k = kh_get(str, hashmap, command_head->buffer);
 
   if (kh_exist(hashmap, k)) {
-    linkedList_t* command_arg = command_head->next_node;
+    linkedList_node_t *command_arg = command_head->next_node;
     kh_value(hashmap, k)(command_arg, responce_fd);
   } else {
     send(responce_fd, "-ERR unknown command\r\n", 22, 0);
@@ -62,8 +68,8 @@ int run_command(linked_list_entry_t command_head, int responce_fd) {
   return 0;
 }
 
-int echo(linkedList_t *input, int responce_fd) {
-  if (input == NULL){
+int echo(linkedList_node_t *input, int responce_fd) {
+  if (input == NULL) {
     send(responce_fd, "$0\r\n\r\n", 6, 0);
     return 0;
   }
@@ -74,20 +80,34 @@ int echo(linkedList_t *input, int responce_fd) {
   return 0;
 }
 
-int ping(linkedList_t *input, int responce_fd) {
+int ping(linkedList_node_t *input, int responce_fd) {
   send(responce_fd, "+PONG\r\n", 7, 0);
   return 0;
 }
 
-int command(linkedList_t *input, int responce_fd) {
+int command(linkedList_node_t *input, int responce_fd) {
   send(responce_fd, "$0\r\n\r\n", 6, 0);
   return 0;
 }
 
-int set(linkedList_t *input, int responce_fd) {
+int set(linkedList_node_t *input, int responce_fd) {
   pthread_mutex_lock(&mutex);
-  send(responce_fd, "+PONG\r\n", 7, 0); 
+  is_writing = 1;
+  sleep(10);
+  send(responce_fd, "+PONG\r\n", 7, 0);
+  pthread_cond_broadcast(&write_cond);
+  is_writing = 0;
   pthread_mutex_unlock(&mutex);
+  return 0;
+}
+
+int get(linkedList_node_t *input, int responce_fd) {
+  pthread_mutex_lock(&mutex);
+  while(is_writing) {
+    pthread_cond_wait(&write_cond, &mutex);
+  }
+  pthread_mutex_unlock(&mutex);
+  send(responce_fd, "+PONG\r\n", 7, 0);
   return 0;
 }
 

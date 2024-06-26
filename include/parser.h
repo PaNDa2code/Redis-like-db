@@ -17,16 +17,16 @@ typedef struct _linked_list {
   struct _linked_list* prev_node;
   unsigned long length;
   char buffer[1];
-} linkedList_t;
+} linkedList_node_t;
 
-typedef linkedList_t* linked_list_entry_t;
+typedef linkedList_node_t* linkedList_entry_t;
 
 
 
-void parse(char* input, linked_list_entry_t* linkedList);
+void parse(char* input, linkedList_entry_t* linkedList);
 
-void free_linked_list(linked_list_entry_t head);
+void free_linked_list(linkedList_entry_t head);
 
-int run_command(linkedList_t* command_head, int responce_fd);
+int run_command(linkedList_node_t* command_head, int responce_fd);
 
 #pragma end

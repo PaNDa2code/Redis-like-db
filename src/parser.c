@@ -1,9 +1,9 @@
 #include "parser.h"
 #include "network_utils.h"
 
-void parse(char *input, linked_list_entry_t* linkedList) {
+void parse(char *input, linkedList_entry_t* linkedList) {
   *linkedList = NULL;
-  linkedList_t *prev_node = NULL;
+  linkedList_node_t *prev_node = NULL;
   input++;
   int array_length = atoi(input);
   while (*(input - 1) != '$') input++;
@@ -13,9 +13,9 @@ void parse(char *input, linked_list_entry_t* linkedList) {
 
     while (*(input - 1) != '\n') input++;
 
-    linkedList_t *current_node = malloc(sizeof(linkedList_t) + bulk_size + 1);
+    linkedList_node_t *current_node = malloc(sizeof(linkedList_node_t) + bulk_size + 1);
 
-    memset(current_node, 0, sizeof(linkedList_t) + bulk_size + 1);
+    memset(current_node, 0, sizeof(linkedList_node_t) + bulk_size + 1);
 
     if (*linkedList == NULL) { *linkedList = current_node; }
 
@@ -34,7 +34,7 @@ void parse(char *input, linked_list_entry_t* linkedList) {
   }
 }
 
-void free_linked_list(linked_list_entry_t head) {
+void free_linked_list(linkedList_entry_t head) {
   while (head->next_node != NULL) {
     head = head->next_node;
     free(head->prev_node);
@@ -46,7 +46,7 @@ void free_linked_list(linked_list_entry_t head) {
 int main() {
   /*char input[] = "*2\r\n$4\r\nECHO\r\n$11\r\nHelloWorld!\r\n";*/
   char input[] = "*1\r\n$4\r\nPING\r\n";
-  linked_list_entry_t Entry;
+  linkedList_entry_t Entry;
   parse(input, &Entry);
   printf("%s ", Entry->buffer);
   /*printf("%s", Entry->next_node->buffer);*/

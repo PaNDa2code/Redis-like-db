@@ -1,13 +1,12 @@
-#include "network_utils.h"
 #include "headers.h"
+#include "network_utils.h"
 #include "parser.h"
 
 extern int keep_threads_running;
 int client_fd;
 
 void accept_connection_thread(int *pServer_fd) {
-  /*char buffer[BUFFER_SIZE] = {0};*/
-  char *buffer = malloc(BUFFER_SIZE*2);
+  char *buffer = malloc(BUFFER_SIZE);
   struct sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
 
@@ -16,7 +15,7 @@ void accept_connection_thread(int *pServer_fd) {
     if (client_fd == -1) {
       if (keep_threads_running)
         perror("accept");
-      return;
+      break;
     }
 
     char *ip_str = inet_ntoa(client_addr.sin_addr);
@@ -39,7 +38,9 @@ void accept_connection_thread(int *pServer_fd) {
       memset(buffer, 0, BUFFER_SIZE); // Clear buffer for next read
     }
   }
-  /*close(client_fd);*/
+  printf("[!] Cleaning up thread 0x%lx\n", pthread_self());
+  close(client_fd);
   free(buffer);
+  printf("[*] Cleaning up thread 0x%lx done\n", pthread_self());
   return;
 }

@@ -1,5 +1,5 @@
 CC=gcc
-CF=-Iinclude -O3
+CF=-g -Iinclude -O3
 TARGET=bin/MyRides
 OBJ_DIR=obj/
 SRC_DIR=src/

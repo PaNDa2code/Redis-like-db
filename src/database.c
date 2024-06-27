@@ -13,6 +13,15 @@ int init_database() {
 }
 
 int destroy_database() {
+  khint_t k;
+  for (k = kh_begin(data_hashmap); k != kh_end(data_hashmap); ++k){
+    if (kh_exist(data_hashmap, k)) {
+      value_t* value = kh_value(data_hashmap, k);
+      printf("Freeing %s\n", value->p_data);
+      free(value);
+      value = NULL;
+    }
+  }
   kh_destroy(str, data_hashmap);
   return 0;
 }
@@ -52,7 +61,6 @@ int get_value_by_key(linkedList_node_t *key_node, value_t** value_node) {
   int is_missing = (k == kh_end(data_hashmap));
 
   if(is_missing){
-    printf("Value is not there");
     return -1;
   }
 

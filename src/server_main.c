@@ -38,7 +38,7 @@ int main() {
   CHECK_ERROR(bind(server_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)),
               != 0, "bind");
 
-  printf("[!] Waiting for client to connect\n");
+  printf("[!] listening for a connection on port: %u\n", ntohs(serv_addr.sin_port));
 
   CHECK_ERROR(listen(server_fd, THREAD_COUNT), != 0, "listen");
 

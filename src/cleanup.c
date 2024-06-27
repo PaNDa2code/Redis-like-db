@@ -1,3 +1,4 @@
+#include "database.h"
 #include "network_utils.h"
 #include "headers.h"
 
@@ -22,16 +23,15 @@ void signal_handler(int sig) {
     return;
   }
   write(STDOUT_FILENO, "[!] Cleaning up\n", 16);
+  
+  keep_threads_running = 0;
+  if (client_fd != 0)
+    shutdown(client_fd, SHUT_RD);
+  if (server_fd != 0)
+    shutdown(server_fd, SHUT_RD);
+
   cleanup_commands_hashmap();
+  destroy_database();
 
-  if (sig == SIGINT) {
-    keep_threads_running = 0;
-    if (client_fd != 0)
-      shutdown(client_fd, SHUT_RD);
-    if (server_fd != 0)
-      shutdown(server_fd, SHUT_RD);
-  }
-
-  exit(EXIT_SUCCESS); // Or raise(sig) if you want to raise the signal again
-                      // after cleanup.
+  // I will not exit or process the default SIGINT
 }

@@ -17,6 +17,8 @@ int get_value_by_key(linkedList_node_t *key_node, value_t** value_node);
 
 int init_database();
 
+int destroy_database();
+
 #define INFINITE_TIME 0x7FFFFFFFFFFFFFFFll
 
 #define ADD_KEYVALUE(key, value, hm_name, k, p_absent)                         \

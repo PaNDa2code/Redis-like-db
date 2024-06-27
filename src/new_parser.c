@@ -36,3 +36,25 @@ void parse(char *input, pesp_array **command_array) {
     (*command_array)->List[i].data_buffer = bulk_string;
   }
 }
+
+void free_bulk_array(pesp_array *bulk_array) {
+  for(int i = 0; i < bulk_array->Length; ++i) {
+    free(bulk_array->List[i].data_buffer);
+  }
+  free(bulk_array);
+}
+
+
+#ifdef TEST_PARSER
+int main() {
+  char input[] = "*2\r\n$4\r\nECHO\r\n$11\r\nHelloWorld!\r\n";
+  pesp_array *command_array = NULL;
+  parse(input, &command_array);
+  pesp_bulk_string* bulk = command_array->List[0].data_buffer;
+  printf("%s\n", bulk->Buffer);
+  bulk = command_array->List[1].data_buffer;
+  printf("%s\n", bulk->Buffer);
+  free_bulk_array(command_array);
+  return 0;
+}
+#endif

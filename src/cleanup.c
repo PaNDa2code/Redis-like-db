@@ -1,7 +1,5 @@
 #include "network_utils.h"
-#include <signal.h>
-#include <stdio.h>
-#include <sys/socket.h>
+#include "headers.h"
 
 extern int cleanup_commands_hashmap();
 extern pthread_t thread_pool[THREAD_COUNT];

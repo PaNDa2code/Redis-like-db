@@ -1,9 +1,7 @@
+#include "database.h"
+#include "headers.h"
 #include "khash.h"
-#include "network_utils.h"
 #include "parser.h"
-#include <bits/pthreadtypes.h>
-#include <pthread.h>
-#include <unistd.h>
 
 typedef int (*command_func_t)(linkedList_node_t *, int);
 
@@ -16,12 +14,6 @@ int get(linkedList_node_t *input, int responce_fd);
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t write_cond = PTHREAD_COND_INITIALIZER;
 int is_writing = 0;
-
-#define ADD_KEYVALUE(key, value)                                               \
-  {                                                                            \
-    k = kh_put(str, hashmap, key, &absent);                                    \
-    kh_value(hashmap, k) = value;                                              \
-  }
 
 KHASH_MAP_INIT_STR(str, command_func_t)
 
@@ -41,11 +33,11 @@ int init_commands_hashmap() {
   khint_t k;
   int absent;
 
-  ADD_KEYVALUE("PING", ping);
-  ADD_KEYVALUE("ECHO", echo);
-  ADD_KEYVALUE("COMMAND", command);
-  ADD_KEYVALUE("SET", set);
-  ADD_KEYVALUE("GET", get);
+  ADD_KEYVALUE("PING", ping, hashmap, k, absent);
+  ADD_KEYVALUE("ECHO", echo, hashmap, k, absent);
+  ADD_KEYVALUE("COMMAND", command, hashmap, k, absent);
+  ADD_KEYVALUE("SET", set, hashmap, k, absent);
+  ADD_KEYVALUE("GET", get, hashmap, k, absent);
   hash_is_set = 1;
   printf("[*] Done\n");
   return 0;
@@ -93,21 +85,35 @@ int command(linkedList_node_t *input, int responce_fd) {
 int set(linkedList_node_t *input, int responce_fd) {
   pthread_mutex_lock(&mutex);
   is_writing = 1;
-  sleep(10);
-  send(responce_fd, "+PONG\r\n", 7, 0);
   pthread_cond_broadcast(&write_cond);
   is_writing = 0;
+
+  /*therads are locked hear*/
+
+  if (set_value_by_key(input, input->next_node, 0) == 0) {
+    send(responce_fd, "+OK\r\n", 5, 0);
+  } else {
+    send(responce_fd, "-Error\r\n", 8, 0);
+  };
+
   pthread_mutex_unlock(&mutex);
   return 0;
 }
 
 int get(linkedList_node_t *input, int responce_fd) {
   pthread_mutex_lock(&mutex);
-  while(is_writing) {
+  while (is_writing) {
     pthread_cond_wait(&write_cond, &mutex);
   }
   pthread_mutex_unlock(&mutex);
-  send(responce_fd, "+PONG\r\n", 7, 0);
+  value_t *value;
+  if (get_value_by_key(input, &value) == 0) {
+    char buffer[value->data_size + 20];
+    sprintf(buffer, "$%lu\r\n%s\r\n", value->data_size, value->p_data);
+    send(responce_fd, buffer, strlen(buffer), 0);
+  } else {
+    send(responce_fd, "$-1\r\n", 5, 0);
+  }
   return 0;
 }
 

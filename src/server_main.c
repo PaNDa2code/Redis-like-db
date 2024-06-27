@@ -1,7 +1,6 @@
+#include "database.h"
 #include "network_utils.h"
-#include <bits/types/struct_timeval.h>
-#include <fcntl.h>
-#include <pthread.h>
+#include "headers.h"
 
 pthread_t thread_pool[THREAD_COUNT];
 
@@ -30,6 +29,11 @@ int main() {
       .sin_port = htons(6379),
       .sin_addr.s_addr = htonl(INADDR_ANY),
   };
+
+
+  printf("[!] Initialinzing data hashmap\n");
+
+  init_database();
 
   CHECK_ERROR(bind(server_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)),
               != 0, "bind");

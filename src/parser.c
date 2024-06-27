@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "headers.h"
 #include "network_utils.h"
 
 void parse(char *input, linkedList_entry_t* linkedList) {

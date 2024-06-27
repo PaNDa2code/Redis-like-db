@@ -1,13 +1,13 @@
 #include "network_utils.h"
+#include "headers.h"
 #include "parser.h"
-#include <signal.h>
-#include <sys/select.h>
 
 extern int keep_threads_running;
 int client_fd;
 
 void accept_connection_thread(int *pServer_fd) {
-  char buffer[BUFFER_SIZE] = {0};
+  /*char buffer[BUFFER_SIZE] = {0};*/
+  char *buffer = malloc(BUFFER_SIZE*2);
   struct sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
 
@@ -40,5 +40,6 @@ void accept_connection_thread(int *pServer_fd) {
     }
   }
   /*close(client_fd);*/
+  free(buffer);
   return;
 }

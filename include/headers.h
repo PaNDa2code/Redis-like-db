@@ -14,5 +14,6 @@
 #include <ctype.h>
 #include <signal.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #pragma end

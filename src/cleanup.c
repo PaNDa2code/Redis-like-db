@@ -33,5 +33,6 @@ void signal_handler(int sig) {
   cleanup_commands_hashmap();
   destroy_database();
 
+  write(STDOUT_FILENO, "[!] Cleaning up\n", 16);
   // I will not exit or process the default SIGINT
 }

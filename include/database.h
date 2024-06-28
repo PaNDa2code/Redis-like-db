@@ -1,19 +1,20 @@
 #pragma once
+#include "parser.h"
 #include <sys/types.h>
 #include <time.h>
-#include "parser.h"
 
 typedef struct {
   time_t insertion_time;
   time_t expiry_time;
   size_t data_size;
-  u_char p_data[1];
+  pesp_array_data_entry data;
 } value_t;
 
+int set_value_by_key(pesp_bulk_string *key_bulk_string,
+                     pesp_bulk_string *value_bulk_string, time_t expiry_time);
 
-int set_value_by_key(linkedList_node_t *key_node, linkedList_node_t *value_node, time_t expiry_time);
- 
-int get_value_by_key(linkedList_node_t *key_node, value_t** value_node);
+int get_value_by_key(pesp_bulk_string *key_bulk_string,
+                     pesp_bulk_string **value_bulk_string);
 
 int init_database();
 
@@ -21,11 +22,10 @@ int destroy_database();
 
 #define INFINITE_TIME 0x7FFFFFFFFFFFFFFFll
 
-#define ADD_KEYVALUE(key, value, hm_name, k, p_absent)                         \
+#define ADD_KEYVALUE(key, value, hm_name, k, absent)                           \
   {                                                                            \
-    k = kh_put(str, hm_name, key, &p_absent);                                  \
+    k = kh_put(str, hm_name, key, &absent);                                    \
     kh_value(hm_name, k) = value;                                              \
   }
-
 
 #pragma end

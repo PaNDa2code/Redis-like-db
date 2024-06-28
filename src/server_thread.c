@@ -32,15 +32,17 @@ void accept_connection_thread(int *pServer_fd) {
         break; // Exit loop when client disconnects
       }
 
-      linkedList_entry_t head;
-      parse(buffer, &head);
-      run_command(head, client_fd);
+      /*linkedList_entry_t head;*/
+      /*parse(buffer, &head);*/ 
+      pesp_array* command_array = NULL;
+      parse(buffer, &command_array);
+
+      run_command(command_array, client_fd);
+      free_bulk_array(command_array);
       memset(buffer, 0, BUFFER_SIZE); // Clear buffer for next read
     }
   }
-  printf("[!] Cleaning up thread 0x%lx\n", pthread_self());
   close(client_fd);
   free(buffer);
-  printf("[*] Cleaning up thread 0x%lx done\n", pthread_self());
   return;
 }

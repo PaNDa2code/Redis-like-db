@@ -1,4 +1,5 @@
 #pragma once
+#include "PESP_formatter.h"
 
 typedef enum {
   COMMAND_PING,
@@ -23,10 +24,10 @@ typedef linkedList_node_t* linkedList_entry_t;
 
 
 
-void parse(char* input, linkedList_entry_t* linkedList);
+void parse(char *input, pesp_array **command_array);
 
-void free_linked_list(linkedList_entry_t head);
+void free_bulk_array(pesp_array *bulk_array);
 
-int run_command(linkedList_node_t* command_head, int responce_fd);
+int run_command(pesp_array* command_head, int responce_fd);
 
 #pragma end

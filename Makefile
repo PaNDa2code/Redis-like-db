@@ -1,5 +1,5 @@
 CC=gcc
-CF=-g -Iinclude -O3
+CF=-lm -g -Iinclude -O3
 TARGET=bin/MyRides
 OBJ_DIR=obj/
 SRC_DIR=src/
@@ -29,4 +29,4 @@ obj/%.o: src/%.c
 
 $(TARGET): $(OBJECT_FILES)
 	@echo "[*] Linking all together"
-	@$(CC) $(CF) -o $@ $^
+	@$(CC) -o $@ $^ $(CF)

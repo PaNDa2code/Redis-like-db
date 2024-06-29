@@ -1,5 +1,4 @@
 #include "headers.h"
-#include "PESP_formatter.h"
 
 void parse(char *input, pesp_array **command_array) {
   if (input == NULL || *input != PESP_ARRAY || command_array == NULL)
@@ -14,7 +13,7 @@ void parse(char *input, pesp_array **command_array) {
   if (array_length <= 0)
     return;
 
-  *command_array = malloc(sizeof(pesp_array_data_entry) * array_length);
+  *command_array = malloc(sizeof(pesp_array) + sizeof(pesp_array_data_entry) * array_length);
 
   if (*command_array == NULL)
     return;
@@ -39,6 +38,7 @@ void parse(char *input, pesp_array **command_array) {
 
     bulk_string->header.type_header = PESP_BULK_STRING;
     bulk_string->header.size = bulk_string_size;
+    bulk_string->is_set = false;
 
     if (bulk_string == NULL) {
       free(*command_array);

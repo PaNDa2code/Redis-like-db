@@ -1,5 +1,3 @@
-#include "database.h"
-#include "network_utils.h"
 #include "headers.h"
 
 extern int cleanup_commands_hashmap();
@@ -16,14 +14,15 @@ void signal_handler(int sig) {
   }
   signal_received = 1;
   char response;
-  write(STDOUT_FILENO, "\nAre you sure you want to close the server (y/n)? ", 50);
+  write(STDOUT_FILENO, "\nAre you sure you want to close the server (y/n)? ",
+        50);
   read(STDIN_FILENO, &response, sizeof(response));
   if (response != 'y') {
     signal_received = 0;
     return;
   }
   write(STDOUT_FILENO, "[!] Cleaning up\n", 16);
-  
+
   keep_threads_running = 0;
   if (client_fd != 0)
     shutdown(client_fd, SHUT_RD);
@@ -34,5 +33,6 @@ void signal_handler(int sig) {
   destroy_database();
 
   write(STDOUT_FILENO, "[!] Cleaning up\n", 16);
-  // I will not exit or process the default SIGINT
+  // I will not exit or process the default SIGINT, to let the threads exit
+  // normaly and clean up the memory and close connections correctly
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "headers.h"
+
 enum {
   PESP_SIMPLE_STRING = '+',
   PESP_SIMPLE_ERROR = '-',
@@ -20,6 +21,8 @@ enum {
 typedef struct {
   char type_header;
   size_t size;
+  struct timespec insertion_time;
+  struct timespec expiry_time;
 } pesp_data_header;
 
 typedef struct {

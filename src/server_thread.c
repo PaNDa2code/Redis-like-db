@@ -1,6 +1,4 @@
 #include "headers.h"
-#include "network_utils.h"
-#include "parser.h"
 
 extern int keep_threads_running;
 int client_fd;
@@ -23,7 +21,6 @@ void accept_connection_thread(int *pServer_fd) {
 
     while (keep_threads_running) {
       ssize_t bytes_read = read(client_fd, buffer, BUFFER_SIZE);
-
       if (bytes_read == -1) {
         perror("read");
         break; // Exit loop on read error
@@ -41,8 +38,8 @@ void accept_connection_thread(int *pServer_fd) {
       free_bulk_array(command_array);
       memset(buffer, 0, BUFFER_SIZE); // Clear buffer for next read
     }
+    close(client_fd);
   }
-  close(client_fd);
   free(buffer);
   return;
 }

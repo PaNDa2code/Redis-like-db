@@ -1,9 +1,4 @@
-#include "PESP_formatter.h"
-#include "database.h"
 #include "headers.h"
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
 
 int PESP_BULK_STRING_format(pesp_bulk_string *bulk_string, char **meassge, size_t *message_size);
 

@@ -1,5 +1,3 @@
-#include "database.h"
-#include "network_utils.h"
 #include "headers.h"
 
 pthread_t thread_pool[THREAD_COUNT];

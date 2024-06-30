@@ -1,9 +1,4 @@
-#include "database.h"
-#include "PESP_formatter.h"
 #include "headers.h"
-#include "khash.h"
-#include <bits/time.h>
-#include <time.h>
 
 KHASH_MAP_INIT_STR(str, pesp_data_header *);
 khash_t(str) * data_hashmap;
@@ -23,6 +18,7 @@ int destroy_database() {
       value = NULL;
     }
   }
+  kh_destroy(str, data_hashmap);
   return 0;
 }
 

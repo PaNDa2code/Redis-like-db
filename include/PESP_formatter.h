@@ -47,4 +47,6 @@ typedef struct {
 
 int PESP_format(pesp_data_header *data, char **message, size_t *n);
 
+int bulk_string_to_cstr(pesp_bulk_string *bulk_string, char **str, size_t *size);
+
 #pragma end

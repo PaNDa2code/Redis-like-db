@@ -18,6 +18,8 @@
 #include <math.h>
 #include <sys/time.h>
 #include <time.h>
+#include <getopt.h>
+#include <cjson/cJSON.h>
 
 #include "time_util.h"
 #include "parser.h"
@@ -25,4 +27,6 @@
 #include "khash.h"
 #include "network_utils.h"
 #include "PESP_formatter.h"
+#include "commands.h"
+#include "key_value_objects.h"
 #pragma end

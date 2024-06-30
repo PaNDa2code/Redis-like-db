@@ -1,13 +1,4 @@
-#include "database.h"
 #include "headers.h"
-
-typedef int (*command_func_t)(pesp_array *, int);
-
-int echo(pesp_array *input, int responce_fd);
-int ping(pesp_array *input, int responce_fd);
-int command(pesp_array *input, int responce_fd);
-int set(pesp_array *input, int responce_fd);
-int get(pesp_array *input, int responce_fd);
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t write_cond = PTHREAD_COND_INITIALIZER;
@@ -36,15 +27,11 @@ int init_commands_hashmap() {
   ADD_KEYVALUE("COMMAND", command, hashmap, k, absent);
   ADD_KEYVALUE("SET", set, hashmap, k, absent);
   ADD_KEYVALUE("GET", get, hashmap, k, absent);
-  hash_is_set = 1;
   printf("[*] Done\n");
   return 0;
 };
 
 int run_command(pesp_array *input, int responce_fd) {
-  if (!hash_is_set)
-    init_commands_hashmap();
-
   pesp_bulk_string *first_string = input->List[0].data_buffer;
   upper(first_string->Buffer);
 

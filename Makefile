@@ -1,5 +1,5 @@
 CC=gcc
-CF=-lm -g -Iinclude -O3
+CF=-lm -lpthread -g -Iinclude -O3
 TARGET=bin/MyRides
 OBJ_DIR=obj/
 SRC_DIR=src/
@@ -18,10 +18,11 @@ gdb_debug: $(C_FILES)
 	@$(CC) $(CF) -g -o bin/MyRides $^
 	gdb bin/MyRides
 
+bin/test_%: $(OBJECT_FILES) test/test_%.c
+	@$(CC) $(CF) -o $@ $^
+
 clean:
 	@rm -f bin/* obj/*
-
-.PHONY: all clean run gdb_debug
 
 obj/%.o: src/%.c 
 	@echo "[*] Compiling $<"
@@ -30,3 +31,10 @@ obj/%.o: src/%.c
 $(TARGET): $(OBJECT_FILES)
 	@echo "[*] Linking all together"
 	@$(CC) -o $@ $^ $(CF)
+
+test: obj/$(U).o tests/test_$(U).c
+	@$(CC) -o bin/test_$(U) $^ $(CF)
+	@./bin/test_$(U)
+
+
+.PHONY: all clean run gdb_debug test

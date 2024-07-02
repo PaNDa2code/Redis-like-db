@@ -14,9 +14,9 @@
 #include <asm-generic/socket.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <stdbool.h>
 #include <signal.h>
+#include "cc.h"
 
-#include "network.h"
-#include "client_thread.h"
-
+#pragma end

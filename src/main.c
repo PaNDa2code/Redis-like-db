@@ -1,6 +1,8 @@
 #include "includes.h"
 #include "network.h"
+#include "client_thread.h"
 #include <pthread.h>
+
 
 inline void handler_args(int argc, char *argv[]);
 
@@ -12,7 +14,11 @@ int server_fd;
 
 void signal_handler(int sigint);
 
+extern int startup();
+
 int main(int argc, char *argv[]) {
+
+  startup();
 
   signal(SIGINT, signal_handler);
 
@@ -61,9 +67,9 @@ int main(int argc, char *argv[]) {
     }
 
     if(connected_clients == MAX_CLIENTS) {
-      char mas[] = "Server reached max number of clients.\n";
-      printf("%s", mas);
-      send(new_socket, mas, sizeof(mas), 0);
+      char mas[] = "-Server reached max number of clients.\r\n";
+      printf("%s", mas + 1);
+      send(new_socket, mas, sizeof(mas) - 1, 0);
       close(new_socket);
       continue;
     }
@@ -81,18 +87,13 @@ int main(int argc, char *argv[]) {
       perror("pthread_create");
       close(new_socket);
     } else {
-      printf("Client connected %s\n", inet_ntoa(address.sin_addr));
+      printf("[*] Client connected ip: %s\n", inet_ntoa(address.sin_addr));
       thread_pool[id] = ptid;
+      pthread_detach(ptid);
       connected_clients++;
     }
   }
 
-  // Wait for the thread to cleanup and exit.
-  for(int i = 0; i < MAX_CLIENTS; ++i) {
-    pthread_join(thread_pool[i], NULL);
-  }
-
-  printf("Closing server socket\n");
   close(server_fd);
 }
 

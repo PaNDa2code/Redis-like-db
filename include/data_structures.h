@@ -10,5 +10,6 @@ typedef struct {
 typedef struct {
   struct timespec insertion_time, expiry_time;
   string_ptr_t string;
+  char* key_ptr;
 } string_container_t;
 

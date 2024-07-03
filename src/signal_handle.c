@@ -12,7 +12,7 @@ extern pthread_t thread_pool[MAX_CLIENTS];
 
 void signal_handler(int sigint) {
 
-  char ask[] = "\nDo you close the server(y/n)? ";
+  char ask[] = "\n[!] Are you sure you want close the server(y/n)? ";
 
   write(STDOUT_FILENO, ask, sizeof(ask));
   char answer[2];
@@ -25,12 +25,13 @@ void signal_handler(int sigint) {
   keep_running = false;
 
   for (int i = 0; i < MAX_CLIENTS; ++i) {
-    if (clients_fds[i])
+    if (clients_fds[i]) {
       shutdown(clients_fds[i], SHUT_RD);
+      close(clients_fds[i]);
+    }
   }
   cleanup_kv_hashmap();
   clean_commands_map();
   shutdown(server_fd, SHUT_RD);
-
 
 }

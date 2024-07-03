@@ -36,15 +36,26 @@ int kv_get(string_ptr_t argv[], size_t argc, int client_fd) {
 }
 
 int kv_set(string_ptr_t argv[], size_t argc, int client_fd) {
+
+  uint64_t expiry_ms = 0;
+
   if (argc < 2) {
     SEND_STRING("-command \'SET\' requires argumnts \'KEY\' and \'VALUE\'\r\n");
     return 0;
+  } else if (argc > 3) {
+    if(strcmp(argv[2]->buffer, "PX") == 0) {
+      if(! (argc > 3) ){
+        SEND_STRING("-missing \'PX\' value\r\n");
+        return 0;
+      }
+      expiry_ms = strtoull(argv[3]->buffer, NULL, 10);
+    }
   }
 
   char* key = argv[0]->buffer;
   string_ptr_t value = argv[1];
 
-  int insert_re = insert_kv(key, value, 0);
+  int insert_re = insert_kv(key, value, expiry_ms);
 
   switch(insert_re) {
     case RE_SUCCESS:

@@ -1,16 +1,19 @@
+#include "client_thread.h"
 #include "includes.h"
 #include "network.h"
-#include "client_thread.h"
+#include <getopt.h>
 #include <pthread.h>
+#include <unistd.h>
 
 
-inline void handler_args(int argc, char *argv[]);
+static inline void handler_args(int argc, char *argv[]);
 
 pthread_t thread_pool[MAX_CLIENTS] = {0};
 int clients_fds[MAX_CLIENTS] = {0};
 int connected_clients = 0;
 bool keep_running = true;
 int server_fd;
+int port_numper = DEFUALT_PORT;
 
 void signal_handler(int sigint);
 
@@ -44,7 +47,7 @@ int main(int argc, char *argv[]) {
 
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
-  address.sin_port = htons(DEFUALT_PORT);
+  address.sin_port = htons(port_numper);
 
   if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
     perror("bind");
@@ -58,7 +61,8 @@ int main(int argc, char *argv[]) {
 
   while (keep_running) {
     int id = 0;
-    if ((new_socket = accept(server_fd, (struct sockaddr*)&address, &addr_len)) < 0) {
+    if ((new_socket =
+             accept(server_fd, (struct sockaddr *)&address, &addr_len)) < 0) {
       if (!keep_running) {
         break;
       }
@@ -66,7 +70,7 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
-    if(connected_clients == MAX_CLIENTS) {
+    if (connected_clients == MAX_CLIENTS) {
       char mas[] = "-Server reached max number of clients.\r\n";
       printf("%s", mas + 1);
       send(new_socket, mas, sizeof(mas) - 1, 0);
@@ -75,15 +79,16 @@ int main(int argc, char *argv[]) {
     }
 
     // finding a free (thread/fd) for the new thread.
-    for(int i = 0; i < MAX_CLIENTS; ++i){
-      if(clients_fds[i] == 0){
+    for (int i = 0; i < MAX_CLIENTS; ++i) {
+      if (clients_fds[i] == 0) {
         id = i;
       }
     }
 
     clients_fds[id] = new_socket;
 
-    if (pthread_create(&ptid, NULL, handle_client, (void *)&clients_fds[id]) != 0) {
+    if (pthread_create(&ptid, NULL, handle_client, (void *)&clients_fds[id]) !=
+        0) {
       perror("pthread_create");
       close(new_socket);
     } else {
@@ -94,9 +99,36 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // wait for all threads to exit normaly.
+  // bad trick, but it works.
+  // better than joining.
+
+  while (connected_clients > 0) {
+    /*usleep(250);*/
+  }
+
   close(server_fd);
 }
 
-inline void handler_args(int argc, char *argv[]) {
-  
+static inline void handler_args(int argc, char *argv[]) {
+  int opt, opt_index = 0;
+
+  static struct option long_options[] = {
+    {"port", required_argument, 0, 'p'},
+    {NULL, 0, 0, 0}
+  };
+
+  while(
+    (opt = getopt_long(argc, argv, "p:", long_options, &opt_index) != -1)
+  ) {
+    switch (opt) {
+      case 'p':
+        port_numper = atoi(optarg);
+        break;
+      case '?':
+        break;
+      default:
+        exit(1);
+    }
+  }
 }

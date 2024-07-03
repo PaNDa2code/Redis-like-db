@@ -1,9 +1,8 @@
 #include "commands_functions.h"
 #include "data_structures.h"
+#include "timespec_util.h"
 #include "includes.h"
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
+#include "kv_database.h"
 
 map(char *, string_container_t *) kv_hashmap;
 
@@ -40,20 +39,21 @@ int insert_kv(char *key, string_ptr_t value, uint64_t expiry_ms) {
   int return_value;
   /*printf("kv_hashmap before insertion: %p\n", kv_hashmap);*/
 
-  pthread_mutex_lock(&write_mutex);
-
-  writing = true;
-
-  if (key == NULL || value == NULL) {
+ if (key == NULL || value == NULL) {
     return_value = RE_INVALID_ARGS;
     goto EXIT;
   }
 
-  if (get(&kv_hashmap, key)) {
+  if (check_kv(key) != RE_KEY_NOT_FOUND) {
     return_value = RE_KEY_EXISTS;
     goto EXIT;
   }
 
+  pthread_mutex_lock(&write_mutex);
+
+  writing = true;
+
+ 
   string_container_t *value_container = malloc(sizeof(string_container_t));
 
   if (!value_container) {
@@ -63,14 +63,23 @@ int insert_kv(char *key, string_ptr_t value, uint64_t expiry_ms) {
   }
 
   value_container->string = value;
+  value_container->key_ptr = strdup(key);
 
-  if (!insert(&kv_hashmap, strdup(key), value_container)) {
+
+  if (!insert(&kv_hashmap, value_container->key_ptr, value_container)) {
     free(value_container);
     return_value = RE_OUT_OF_MEMORY;
     goto EXIT;
   }
 
   clock_gettime(CLOCK_REALTIME, &value_container->insertion_time);
+
+  if(expiry_ms){
+    value_container->expiry_time = value_container->insertion_time;
+    add_mc_timestamp(&value_container->expiry_time, expiry_ms);
+  } else {
+    memset(&value_container->expiry_time, 0, sizeof(struct timespec));
+  }
 
   value->refrance_count++;
 
@@ -97,15 +106,57 @@ int lookup_kv(char *key, string_ptr_t *value) {
   if (key == NULL || value == NULL)
     return RE_INVALID_ARGS;
 
+
+  if(check_kv(key) != RE_KEY_EXISTS)
+    return RE_KEY_NOT_FOUND;
+
   void* g = get(&kv_hashmap, key);
 
-  if (g == NULL)
+  string_container_t *contianer = *((string_container_t **)g);
+   
+  *value = contianer->string;
+
+  return RE_SUCCESS;
+}
+
+int delete_kv(char* key){
+  // this will wait if the mutex is already locked until it's unlocked
+  // according to the man page of pthread_mutex_lock()
+  pthread_mutex_lock(&write_mutex);
+  void *g = get(&kv_hashmap, key); 
+  string_container_t *contianer = *((string_container_t **)g);
+  free(contianer->string);
+  free(contianer->key_ptr);
+  free(contianer);
+  erase(&kv_hashmap, key);
+  pthread_mutex_unlock(&write_mutex);
+
+  return RE_SUCCESS;
+}
+
+int check_kv(char* key){
+  if(key == NULL)
+    return RE_INVALID_ARGS;
+
+  void* g = get(&kv_hashmap, key);
+
+  if(g == NULL)
     return RE_KEY_NOT_FOUND;
 
   string_container_t *contianer = *((string_container_t **)g);
 
-  *value = contianer->string;
+  if(!contianer->expiry_time.tv_sec)
+    return RE_KEY_EXISTS;
 
-  return RE_SUCCESS;
+  struct timespec ts_now;
+
+  clock_gettime(CLOCK_REALTIME, &ts_now);
+
+  if (!cmpr_timestamp(&ts_now, &contianer->expiry_time, LESS_THAN)){
+    delete_kv(key);
+    return RE_KEY_NOT_FOUND;
+  }
+
+  return RE_KEY_EXISTS;
 }
 

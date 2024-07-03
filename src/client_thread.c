@@ -18,10 +18,9 @@ void *handle_client(void *new_socket) {
     if (readed_bytes < 0) {
       perror("read");
     } else if (readed_bytes == 0) {
-      printf("Client disconnected\n");
+      printf("[*] Client disconnected\n");
       break;
     } else {
-      /*printf("Message from client: \n%s\n", buffer);*/
       string_ptr_t *arr;
       size_t n;
       parse_command(buffer, &arr, &n);

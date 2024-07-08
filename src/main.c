@@ -1,10 +1,10 @@
 #include "client_thread.h"
 #include "includes.h"
 #include "network.h"
+#include <bits/getopt_core.h>
 #include <getopt.h>
 #include <pthread.h>
 #include <unistd.h>
-
 
 static inline void handler_args(int argc, char *argv[]);
 
@@ -13,13 +13,15 @@ int clients_fds[MAX_CLIENTS] = {0};
 int connected_clients = 0;
 bool keep_running = true;
 int server_fd;
-int port_numper = DEFUALT_PORT;
+int port_number = DEFUALT_PORT;
 
 void signal_handler(int sigint);
 
 extern int startup();
 
 int main(int argc, char *argv[]) {
+
+  handler_args(argc, argv);
 
   startup();
 
@@ -47,7 +49,7 @@ int main(int argc, char *argv[]) {
 
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
-  address.sin_port = htons(port_numper);
+  address.sin_port = htons(port_number);
 
   if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
     perror("bind");
@@ -58,6 +60,8 @@ int main(int argc, char *argv[]) {
     perror("listen");
     return -1;
   }
+
+  printf("Listening on port %d\n", port_number);
 
   while (keep_running) {
     int id = 0;
@@ -94,6 +98,8 @@ int main(int argc, char *argv[]) {
     } else {
       printf("[*] Client connected ip: %s\n", inet_ntoa(address.sin_addr));
       thread_pool[id] = ptid;
+      // detaching the threads so "The resources of TH will therefore be freed
+      // immediately when it terminates" based on man page of pthread_detach
       pthread_detach(ptid);
       connected_clients++;
     }
@@ -101,34 +107,34 @@ int main(int argc, char *argv[]) {
 
   // wait for all threads to exit normaly.
   // bad trick, but it works.
-  // better than joining.
+  // can't use joining here becase we detached the threads
 
   while (connected_clients > 0) {
-    /*usleep(250);*/
+    usleep(250);
   }
 
   close(server_fd);
 }
 
 static inline void handler_args(int argc, char *argv[]) {
-  int opt, opt_index = 0;
+  int opt;
+  int option_index = 0;
 
-  static struct option long_options[] = {
-    {"port", required_argument, 0, 'p'},
-    {NULL, 0, 0, 0}
-  };
+  static struct option long_options[] = {{"port", required_argument, 0, 'p'},
+                                         {NULL, 0, 0, 0}};
 
-  while(
-    (opt = getopt_long(argc, argv, "p:", long_options, &opt_index) != -1)
-  ) {
+  while ((opt = getopt_long(argc, argv, "p:", long_options, &option_index)) !=
+         -1) {
     switch (opt) {
-      case 'p':
-        port_numper = atoi(optarg);
-        break;
-      case '?':
-        break;
-      default:
-        exit(1);
+    case 'p':
+      port_number = atoi(optarg);
+      break;
+    case '?':
+      exit(1);
+      break;
+    default:
+      fprintf(stderr, "Unkown option %c\n", opt);
+      break;
     }
   }
 }

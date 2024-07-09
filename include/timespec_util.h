@@ -6,6 +6,6 @@ enum RELATIONS {
   EQUAL = 0,
 };
 
-bool cmpr_timestamp(struct timespec *t1, struct timespec *t2, enum RELATIONS check_case);
+enum RELATIONS cmpr_timestamp(struct timespec *t1, struct timespec *t2);
 
 void add_mc_timestamp(struct timespec *ts, uint64_t msec);

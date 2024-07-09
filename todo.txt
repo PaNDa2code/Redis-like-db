@@ -1,0 +1,3 @@
+[ ] Secure TCP connection using TLS --> Delayed
+[ ] Add `HGET` and `HSET` commands support
+[ ] Add `INFO` command support

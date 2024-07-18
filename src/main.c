@@ -1,4 +1,5 @@
 #include "client_thread.h"
+#include "dynamic_array.h"
 #include "includes.h"
 #include "network.h"
 #include <bits/getopt_core.h>
@@ -8,9 +9,12 @@
 
 static inline void handler_args(int argc, char *argv[]);
 
-pthread_t thread_pool[MAX_CLIENTS] = {0};
-int clients_fds[MAX_CLIENTS] = {0};
-int connected_clients = 0;
+pthread_t *thread_pool = NULL;
+int *clients_fds = NULL;
+
+uint32_t connected_clients = 0;
+uint32_t maxclients = DEFUALT_MAX_CLIENTS;
+
 bool keep_running = true;
 int server_fd;
 int port_number = DEFUALT_PORT;
@@ -56,7 +60,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  if (listen(server_fd, MAX_CLIENTS) < 0) {
+  if (listen(server_fd, DEFUALT_MAX_CLIENTS) < 0) {
     perror("listen");
     return -1;
   }
@@ -74,7 +78,7 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
-    if (connected_clients == MAX_CLIENTS) {
+    if (connected_clients == maxclients) {
       char mas[] = "-Server reached max number of clients.\r\n";
       printf("%s", mas + 1);
       send(new_socket, mas, sizeof(mas) - 1, 0);
@@ -82,22 +86,19 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
-    // finding a free (thread/fd) for the new thread.
-    for (int i = 0; i < MAX_CLIENTS; ++i) {
-      if (clients_fds[i] == 0) {
-        id = i;
-      }
-    }
+    size_t idx = array_length(clients_fds);
+    array_append(clients_fds, new_socket);
 
-    clients_fds[id] = new_socket;
-
-    if (pthread_create(&ptid, NULL, handle_client, (void *)&clients_fds[id]) !=
+    if (pthread_create(&ptid, NULL, handle_client, (void *)idx) !=
         0) {
       perror("pthread_create");
       close(new_socket);
     } else {
       printf("[*] Client connected ip: %s\n", inet_ntoa(address.sin_addr));
-      thread_pool[id] = ptid;
+
+      array_append(thread_pool, ptid);
+      /*thread_pool[id] = ptid;*/
+
       // detaching the threads so "The resources of TH will therefore be freed
       // immediately when it terminates" based on man page of pthread_detach
       pthread_detach(ptid);

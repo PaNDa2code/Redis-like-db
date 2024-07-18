@@ -1,16 +1,21 @@
 
+#include "dynamic_array.h"
 #include "parse_command.h"
 #include "command_handler.h"
 #include "kv_database.h"
+#include <stdint.h>
 
 extern bool keep_running;
-extern int connected_clients;
+extern uint32_t connected_clients;
 
-#define TCP_MMS 1460
-#define MAX_BUFFER_SIZE TCP_MMS
+#define MAX_BUFFER_SIZE 1024
 
-void *handle_client(void *new_socket) {
-  int client_socket = *(int *)new_socket;
+extern pthread_t *thread_pool;
+extern int *clients_fds;
+
+void *handle_client(void *socket_idx_p) {
+  size_t socket_idx = (size_t)socket_idx_p;
+  int client_socket = clients_fds[socket_idx];
   char buffer[MAX_BUFFER_SIZE] = {0};
   ssize_t readed_bytes;
   while (keep_running) {
@@ -31,7 +36,7 @@ void *handle_client(void *new_socket) {
   }
 
   close(client_socket);
-  *(int*)new_socket = 0;
+  array_pop(clients_fds, socket_idx);
   connected_clients--;
   return NULL;
 }

@@ -1,14 +1,17 @@
 #include "includes.h"
 #include "network.h"
+#include "dynamic_array.h"
+#include <stdint.h>
 #include <sys/socket.h>
 
 extern bool keep_running;
 extern int server_fd;
-/*extern pthread_t *thread_pool;*/
-extern int clients_fds[MAX_CLIENTS];
+extern uint32_t maxclients;
+extern pthread_t *thread_pool;
+extern int *clients_fds;
 extern int cleanup_kv_hashmap();
 extern void clean_commands_map();
-extern pthread_t thread_pool[MAX_CLIENTS];
+extern pthread_t *thread_pool;
 
 void signal_handler(int sigint) {
 
@@ -24,12 +27,16 @@ void signal_handler(int sigint) {
 
   keep_running = false;
 
-  for (int i = 0; i < MAX_CLIENTS; ++i) {
+  for (int i = 0; i < maxclients; ++i) {
     if (clients_fds[i]) {
       shutdown(clients_fds[i], SHUT_RD);
       close(clients_fds[i]);
     }
   }
+
+  free_dynamic_array(clients_fds);
+  free_dynamic_array(thread_pool);
+
   cleanup_kv_hashmap();
   clean_commands_map();
   shutdown(server_fd, SHUT_RD);

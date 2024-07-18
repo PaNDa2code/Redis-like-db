@@ -6,7 +6,6 @@
 #include <bits/time.h>
 #include <time.h>
 
-/*map(char *, string_container_t *) kv_hashmap;*/
 hashmap_t *kv_hashmap;
 
 pthread_mutex_t read_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -60,11 +59,11 @@ int insert_kv(char *key, string_ptr_t value, uint64_t expiry_ms) {
     goto EXIT;
   }
 
-  int re = insert_to_hashmap(kv_hashmap, key, (char *)value_container);
+  int re = hashmap_set(kv_hashmap, key, (char *)value_container);
 
   if (re == RE_KEY_EXISTS) {
     string_container_t *tmp;
-    get_from_hashmap(kv_hashmap, key, (char **)&tmp);
+    hashmap_get(kv_hashmap, key, (void **)&tmp);
     if (tmp->expiry_time.tv_sec) {
       struct timespec ts;
       clock_gettime(CLOCK_REALTIME, &ts);
@@ -119,7 +118,7 @@ int lookup_kv(char *key, string_ptr_t *value) {
 
   string_container_t *contianer = NULL;
 
-  if (get_from_hashmap(kv_hashmap, key, (char **)&contianer) != RE_SUCCESS) {
+  if (hashmap_get(kv_hashmap, key, (void **)&contianer) != RE_SUCCESS) {
     return RE_KEY_NOT_FOUND;
   };
 
@@ -142,7 +141,7 @@ int delete_kv(char *key) {
   // according to the man page of pthread_mutex_lock()
   pthread_mutex_lock(&write_mutex);
 
-  erase_hashmap_bucket(kv_hashmap, key, free_container);
+  hashmap_del(kv_hashmap, key, free_container);
 
   pthread_mutex_unlock(&write_mutex);
   return RE_SUCCESS;

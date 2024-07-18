@@ -20,7 +20,7 @@ enum _hash_bucket_status {
 typedef struct _hash_bucket {
   unsigned char status;
   char *key;
-  char *value;
+  void *value;
   struct _hash_bucket *next;
 } hashmap_bucket_t;
 
@@ -34,11 +34,11 @@ hashmap_t *new_hashmap();
 
 int init_hashmap(hashmap_t **hashmap);
 
-int insert_to_hashmap(hashmap_t *hashmap, char *key, char *value);
+int hashmap_set(hashmap_t *hashmap, char *key, void *value);
 
-int get_from_hashmap(hashmap_t *hashmap, char *key, char **value);
+int hashmap_get(hashmap_t *hashmap, char *key, void **value);
 
-int erase_hashmap_bucket(hashmap_t *hashmap, char *key,
+int hashmap_del(hashmap_t *hashmap, char *key,
                          void (*free_value)(void *value));
 
 void free_hashmap(hashmap_t *hashmap, void (*free_value)(void *value));

@@ -13,7 +13,7 @@ hashmap_t *new_hashmap() {
   return map;
 }
 
-int insert_to_hashmap(hashmap_t *hashmap, char *key, char *value) {
+int hashmap_set(hashmap_t *hashmap, char *key, void *value) {
   if (!hashmap || !key || !value)
     return RE_INVALID_ARGS;
 
@@ -46,7 +46,7 @@ int insert_to_hashmap(hashmap_t *hashmap, char *key, char *value) {
   return RE_SUCCESS;
 }
 
-int get_from_hashmap(hashmap_t *hashmap, char *key, char **value) {
+int hashmap_get(hashmap_t *hashmap, char *key, void **value) {
 
   if (!hashmap || !key)
     return RE_INVALID_ARGS;
@@ -100,7 +100,7 @@ void free_hashmap(hashmap_t *hashmap, void (*free_value)(void *value)) {
   free(hashmap);
 }
 
-int erase_hashmap_bucket(hashmap_t *hashmap, char *key, void (*free_value)(void* value)) {
+int hashmap_del(hashmap_t *hashmap, char *key, void (*free_value)(void* value)) {
 
   uint64_t index = str_hash(key);
 

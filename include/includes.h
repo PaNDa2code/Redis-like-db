@@ -17,6 +17,5 @@
 #include <sys/time.h>
 #include <stdbool.h>
 #include <signal.h>
-#include "cc.h"
 
 #pragma end

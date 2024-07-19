@@ -23,7 +23,6 @@ void *handle_client(void *socket_idx_p) {
     if (readed_bytes < 0) {
       perror("read");
     } else if (readed_bytes == 0) {
-      printf("[*] Client disconnected\n");
       break;
     } else {
       string_ptr_t *arr;

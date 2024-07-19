@@ -1,4 +1,5 @@
 #include "client_thread.h"
+#include "logger.h"
 #include "dynamic_array.h"
 #include "includes.h"
 #include "network.h"
@@ -6,6 +7,7 @@
 #include <getopt.h>
 #include <pthread.h>
 #include <unistd.h>
+#include "assci_art.h"
 
 static inline void handler_args(int argc, char *argv[]);
 
@@ -28,6 +30,8 @@ int main(int argc, char *argv[]) {
   handler_args(argc, argv);
 
   startup();
+
+  print_assci_art("Redis-Like-db", "PaNDa2code");
 
   signal(SIGINT, signal_handler);
 
@@ -65,7 +69,8 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  printf("Listening on port %d\n", port_number);
+  /*printf("Listening on port %d\n", port_number);*/
+  LOG("Listening on port %d", port_number);
 
   while (keep_running) {
     int id = 0;
@@ -94,8 +99,7 @@ int main(int argc, char *argv[]) {
       perror("pthread_create");
       close(new_socket);
     } else {
-      printf("[*] Client connected ip: %s\n", inet_ntoa(address.sin_addr));
-
+      LOG("Accepted connection - ip:%s:%d",inet_ntoa(address.sin_addr), address.sin_port);
       array_append(thread_pool, ptid);
       /*thread_pool[id] = ptid;*/
 

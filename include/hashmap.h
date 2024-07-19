@@ -1,21 +1,14 @@
 #pragma once
 #include <stdint.h>
+#include <stdio.h>
 
-#define HASHMAP_SIZE 1000000
+#define HASHMAP_SIZE 10000
 
 enum _hash_bucket_status {
-  BUCKET_EMPTY = 0X00,
-  BUCKET_OCCUPIED = 0X01,
+  BUCKET_EMPTY = 0x00,
+  BUCKET_OCCUPIED = 0x01,
   BUCKET_ERASED = 0x02,
 };
-
-/*enum _hashmap_functions_return_values {*/
-/*  RV_SUCCESS,*/
-/*  RV_KEY_NOT_FOUND,*/
-/*  RV_KEY_EXIST,*/
-/*  RV_FAILD,*/
-/*  RV_BAD_ARGS*/
-/*};*/
 
 typedef struct _hash_bucket {
   unsigned char status;
@@ -24,28 +17,33 @@ typedef struct _hash_bucket {
   struct _hash_bucket *next;
 } hashmap_bucket_t;
 
+typedef void (*free_function_t)(void *);
+
 typedef struct {
-  hashmap_bucket_t buckets[HASHMAP_SIZE];
+  size_t capacity;
+  free_function_t free_value;
+  hashmap_bucket_t buckets[0];
 } hashmap_t;
 
 uint64_t str_hash(char *string);
 
+hashmap_t *new_n_hashmap(size_t n);
+
 hashmap_t *new_hashmap();
 
-int init_hashmap(hashmap_t **hashmap);
+int hashmap_add(hashmap_t *hashmap, char *key, void *value);
 
 int hashmap_set(hashmap_t *hashmap, char *key, void *value);
 
 int hashmap_get(hashmap_t *hashmap, char *key, void **value);
 
-int hashmap_del(hashmap_t *hashmap, char *key,
-                         void (*free_value)(void *value));
+int hashmap_del(hashmap_t *hashmap, char *key);
 
-void free_hashmap(hashmap_t *hashmap, void (*free_value)(void *value));
+void free_hashmap(hashmap_t *hashmap);
 
 #define HASHMAP_FOR_EACH(hashmap, key_var, value_var, code)                    \
   char *key_var, *value_var;                                                   \
-  for (size_t _i = 0; _i < HASHMAP_SIZE; ++_i) {                               \
+  for (size_t _i = 0; _i < hashmap->capacity; ++_i) {                          \
     hashmap_bucket_t *_bucket = &hashmap->buckets[_i];                         \
     if (BUCKET_EMPTY == _bucket->status) {                                     \
       continue;                                                                \
@@ -67,8 +65,22 @@ void free_hashmap(hashmap_t *hashmap, void (*free_value)(void *value));
     }                                                                          \
   }
 
-#define FOR_EACH(map, key_var, value_var)                              \
-  for (size_t _i = 0; _i < HASHMAP_SIZE; ++_i) {                               \
+#define HASHMAP_FOR_EACH_BUCKET(map, bucket, code)                             \
+  hashmap_bucket_t *bucket = NULL;                                             \
+  for (size_t i = 0; i < map->capacity; ++i) {                                 \
+    bucket = &map->buckets[i];                                                 \
+    if (BUCKET_EMPTY == bucket->status)                                        \
+      continue;                                                                \
+    if (BUCKET_OCCUPIED == bucket->status) {                                   \
+      do {                                                                     \
+        code;                                                                  \
+        bucket = bucket->next;                                                 \
+      } while (bucket);                                                        \
+    }                                                                          \
+  }
+
+#define FOR_EACH(map, key_var, value_var)                                      \
+  for (size_t _i = 0; _i < map->capacity; ++_i) {                              \
     hashmap_bucket_t *_bucket = &map->buckets[_i];                             \
     if (BUCKET_EMPTY == _bucket->status) {                                     \
       continue;                                                                \

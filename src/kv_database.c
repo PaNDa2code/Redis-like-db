@@ -15,9 +15,12 @@ pthread_cond_t reading_lock_cond = PTHREAD_COND_INITIALIZER;
 
 bool writing = false;
 
+void free_container(void *contianer);
+
 int init_kv_hashmap() {
   printf("initializing kv hashmap\n");
   kv_hashmap = new_hashmap();
+  kv_hashmap->free_value = free_container;
   return 0;
 }
 
@@ -32,7 +35,7 @@ int cleanup_kv_hashmap() {
   char *key;
   char *value;
 
-  free_hashmap(kv_hashmap, free_container);
+  free_hashmap(kv_hashmap);
 
   pthread_mutex_unlock(&read_mutex);
   return RE_SUCCESS;
@@ -141,33 +144,9 @@ int delete_kv(char *key) {
   // according to the man page of pthread_mutex_lock()
   pthread_mutex_lock(&write_mutex);
 
-  hashmap_del(kv_hashmap, key, free_container);
+  hashmap_del(kv_hashmap, key);
 
   pthread_mutex_unlock(&write_mutex);
   return RE_SUCCESS;
 }
 
-/**/
-/*int check_kv(char* key){*/
-/*  if(key == NULL)*/
-/*    return RE_INVALID_ARGS;*/
-/**/
-/*  void* g = get(&kv_hashmap, key);*/
-/**/
-/*  if(g == NULL)*/
-/*    return RE_KEY_NOT_FOUND;*/
-/**/
-/*  string_container_t *contianer = *((string_container_t **)g);*/
-/**/
-/*  if(!contianer->expiry_time.tv_sec)*/
-/*    return RE_KEY_EXISTS;*/
-/**/
-/*  struct timespec ts_now;*/
-/**/
-/*  clock_gettime(CLOCK_REALTIME, &ts_now);*/
-/**/
-/*  if (!cmpr_timestamp(&ts_now, &contianer->expiry_time, LESS_THAN)){*/
-/*    delete_kv(key);*/
-/*    return RE_KEY_NOT_FOUND;*/
-/*  } */
-/*  r */

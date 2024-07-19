@@ -1,6 +1,4 @@
 #include "hashmap.h"
-#include "includes.h"
-#include "parse_command.h"
 #include "commands_functions.h"
 
 typedef int (*command_function_t)(string_ptr_t argv[], size_t argc, int client_fd);
@@ -12,6 +10,8 @@ int init_commands_map() {
   printf("initializing commands map\n");
 
   commands_map = new_hashmap();
+  // since the values are functions, we don't want to free them.
+  commands_map->free_value = NULL;
 
   hashmap_set(commands_map, "PING", ping);
   hashmap_set(commands_map, "GET", kv_get);
@@ -22,7 +22,7 @@ int init_commands_map() {
 
 void clean_commands_map() {
   // Value of this hashmap is functions.
-  free_hashmap(commands_map, NULL);
+  free_hashmap(commands_map);
 }
 
 void command_run(string_ptr_t* command_string_array, int n, int client_fd){

@@ -1,8 +1,8 @@
 
-#include "dynamic_array.h"
-#include "parse_command.h"
 #include "command_handler.h"
+#include "dynamic_array.h"
 #include "kv_database.h"
+#include "parse_command.h"
 #include <stdint.h>
 
 extern bool keep_running;
@@ -10,12 +10,11 @@ extern uint32_t connected_clients;
 
 #define MAX_BUFFER_SIZE 1024
 
-extern pthread_t *thread_pool;
-extern int *clients_fds;
+extern dynamic_array(pthread_t)* thread_pool;
+extern dynamic_array(int)* clients_fds;
 
-void *handle_client(void *socket_idx_p) {
-  size_t socket_idx = (size_t)socket_idx_p;
-  int client_socket = clients_fds[socket_idx];
+void *handle_client(void *arg) {
+  int client_socket = *((int *)arg);
   char buffer[MAX_BUFFER_SIZE] = {0};
   ssize_t readed_bytes;
   while (keep_running) {
@@ -35,7 +34,7 @@ void *handle_client(void *socket_idx_p) {
   }
 
   close(client_socket);
-  array_pop(clients_fds, socket_idx);
+  dynamic_array_find_and_remove(clients_fds, client_socket);
   connected_clients--;
   return NULL;
 }

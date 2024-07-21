@@ -70,7 +70,7 @@ int insert_kv(char *key, string_ptr_t value, uint64_t expiry_ms) {
     if (tmp->expiry_time.tv_sec) {
       struct timespec ts;
       clock_gettime(CLOCK_REALTIME, &ts);
-      if (cmpr_timestamp(&ts, &tmp->expiry_time) != LESS_THAN) {
+      if (check_cmpr_timestamp(&ts, &tmp->expiry_time, GREATER_THAN || EQUAL)) {
         free(value_container);
         value_container = tmp;
         re = RE_SUCCESS;

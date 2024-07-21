@@ -7,11 +7,10 @@
 extern bool keep_running;
 extern int server_fd;
 extern uint32_t maxclients;
-extern pthread_t *thread_pool;
-extern int *clients_fds;
+extern dynamic_array(pthread_t) *thread_pool;
+extern dynamic_array(int) *clients_fds;
 extern int cleanup_kv_hashmap();
 extern void clean_commands_map();
-extern pthread_t *thread_pool;
 
 void signal_handler(int sigint) {
 
@@ -27,11 +26,9 @@ void signal_handler(int sigint) {
 
   keep_running = false;
 
-  for (int i = 0; i < maxclients; ++i) {
-    if (clients_fds[i]) {
-      shutdown(clients_fds[i], SHUT_RD);
-      close(clients_fds[i]);
-    }
+  dynamic_array_for_each(clients_fds, clients_fd) {
+    shutdown(clients_fd, SHUT_RD);
+    close(clients_fd);
   }
 
   free_dynamic_array(clients_fds);
@@ -40,5 +37,4 @@ void signal_handler(int sigint) {
   cleanup_kv_hashmap();
   clean_commands_map();
   shutdown(server_fd, SHUT_RD);
-
 }

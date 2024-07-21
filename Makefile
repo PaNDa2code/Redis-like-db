@@ -1,5 +1,5 @@
 CC=gcc
-CF=-lm -lpthread -g -Iinclude -O3
+CF=-lm -lpthread -g -fsanitize=address,undefined -Iinclude -Ofast
 TARGET=bin/MyRides
 OBJ_DIR=obj/
 SRC_DIR=src/

@@ -1,18 +1,18 @@
-#include "assci_art.h"
 #include "client_thread.h"
+#include "logger.h"
 #include "dynamic_array.h"
 #include "includes.h"
-#include "logger.h"
 #include "network.h"
 #include <bits/getopt_core.h>
 #include <getopt.h>
 #include <pthread.h>
 #include <unistd.h>
+#include "assci_art.h"
 
 static inline void handler_args(int argc, char *argv[]);
 
-pthread_t *thread_pool = NULL;
-int *clients_fds = NULL;
+dynamic_array(pthread_t) *thread_pool;
+dynamic_array(int) *clients_fds;
 
 uint32_t connected_clients = 0;
 uint32_t maxclients = DEFUALT_MAX_CLIENTS;
@@ -91,17 +91,16 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
-    size_t idx = array_length(clients_fds);
-    array_append(clients_fds, new_socket);
+    dynamic_array_push(clients_fds, new_socket);
 
-    if (pthread_create(&ptid, NULL, handle_client, (void *)idx) != 0) {
+    void* arg = &new_socket;
+    if (pthread_create(&ptid, NULL, handle_client, arg) !=
+        0) {
       perror("pthread_create");
       close(new_socket);
     } else {
-      LOG("Accepted connection - ip:%s:%d", inet_ntoa(address.sin_addr),
-          address.sin_port);
-      /*array_append(thread_pool, ptid);*/
-      /*thread_pool[id] = ptid;*/
+      LOG("Accepted connection - ip:%s:%d",inet_ntoa(address.sin_addr), address.sin_port);
+      dynamic_array_push(thread_pool, ptid);
 
       // detaching the threads so "The resources of TH will therefore be freed
       // immediately when it terminates" based on man page of pthread_detach

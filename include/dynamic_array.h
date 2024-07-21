@@ -1,156 +1,141 @@
-#include <stdio.h>
+#pragma once
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 
-#pragma once
+#define dynamic_array(type)                                                    \
+  struct {                                                                     \
+    size_t size;                                                               \
+    size_t allocated_length;                                                   \
+    size_t length;                                                             \
+    size_t item_size;                                                          \
+    pthread_mutex_t mutex;                                                     \
+    type *buffer;                                                              \
+  }
 
-typedef struct {
-  size_t length;
-  size_t capacity;
-  size_t last_element_index;
-  char buffer[0];
-} dynamic_array_header_t;
-
-#define dynamic_array(type, size)                                              \
+#define dynamic_array_init(array_ptr)                                          \
   ({                                                                           \
-    dynamic_array_header_t *header =                                           \
-        malloc(sizeof(dynamic_array_header_t) + sizeof(type) * size);          \
-    if (NULL == header)                                                        \
-      (type *)NULL;                                                            \
-    else {                                                                     \
-      header->length = size;                                                   \
-      header->capacity = sizeof(type);                                         \
-      header->last_element_index = -1;                                         \
-    }                                                                          \
-    (type *)&header->buffer;                                                   \
+    dynamic_array(typeof((*array_ptr)->buffer[0])) *__dynamic_array =          \
+        malloc(sizeof(*__dynamic_array));                                      \
+    __dynamic_array->item_size = sizeof(typeof((*array_ptr)->buffer[0]));      \
+    pthread_mutex_init(&__dynamic_array->mutex, NULL);                         \
+    __dynamic_array->allocated_length = 10;                                    \
+    __dynamic_array->length = 0;                                               \
+    __dynamic_array->size =                                                    \
+        __dynamic_array->item_size * __dynamic_array->allocated_length;        \
+    __dynamic_array->buffer = malloc(__dynamic_array->size);                   \
+    memset(__dynamic_array->buffer, 0, __dynamic_array->size);                 \
+    *array_ptr = (void *)__dynamic_array;                                      \
   })
 
-#define __header(array)                                                        \
-  ((dynamic_array_header_t *)((char *)(array) - sizeof(dynamic_array_header_t)))
-
-#define array_length(array) __header(array)->last_element_index + 1
-
-#define resize_array(array, new_size)                                          \
+#define free_dynamic_array(array)                                              \
   ({                                                                           \
-    dynamic_array_header_t *header_r =                                         \
-        realloc(__header(array), sizeof(dynamic_array_header_t) +              \
-                                     __header(array)->capacity * new_size);    \
-    if (NULL == header_r)                                                      \
-      -1;                                                                      \
-    else {                                                                     \
-      header_r->length = new_size;                                             \
-      array = (void *)&header_r->buffer;                                       \
-    }                                                                          \
-    0;                                                                         \
+    free(array->buffer);                                                       \
+    free(array);                                                               \
   })
 
-#define array_append(array, value)                                             \
+#define dynamic_array_resize_no_mutex(array, new_allocated_length)             \
   ({                                                                           \
-    dynamic_array_header_t *header_a = __header(array);                        \
-    if (header_a->last_element_index + 1 == header_a->length) {                \
-      if (0 != resize_array(array, header_a->length * 2))                      \
-        -1;                                                                    \
-    }                                                                          \
-    array[++header_a->last_element_index] = value;                             \
-    0;                                                                         \
-  })
-#define array_pop(array, index)                                                \
-  ({                                                                           \
-    dynamic_array_header_t *header_p = __header(array);                        \
-    if (0 > index || header_p->last_element_index < index)                     \
-      -1;                                                                      \
-    else {                                                                     \
-      for (size_t __i = index; __i < header_p->last_element_index; ++__i)      \
-        array[__i] = array[__i + 1];                                           \
-      header_p->last_element_index--;                                          \
-      0;                                                                       \
-    }                                                                          \
+    array->buffer =                                                            \
+        realloc(array->buffer, new_allocated_length * array->item_size);       \
+    array->allocated_length = new_allocated_length;                            \
   })
 
-#define array_remove_by_value(array, value)                                    \
+#define dynamic_array_resize(array, new_length)                                \
   ({                                                                           \
-    dynamic_array_header_t *header_p = __header(array);                        \
-    int __found = 0;                                                           \
-    for (size_t __i = 0; __i < header_p->last_element_index; ++__i) {          \
-      if (!__found && value == array[__i]) {                                   \
-        __found = 1;                                                           \
-      }                                                                        \
-      if (__found) {                                                           \
-        array[__i] = array[__i + 1];                                           \
-      }                                                                        \
+    pthread_mutex_lock(&array->mutex);                                         \
+    array->buffer = realloc(array->buffer, new_length * array->item_size);     \
+    array->allocated_length = new_length;                                      \
+    array->length = new_length;                                                \
+    pthread_mutex_unlock(&array->mutex);                                       \
+  })
+
+#define dynamic_array_push(array, value)                                       \
+  ({                                                                           \
+    pthread_mutex_lock(&array->mutex);                                         \
+    if (array->length == array->allocated_length)                              \
+      dynamic_array_resize_no_mutex(array, array->length * 2);                 \
+    array->buffer[array->length] = value;                                      \
+    array->length++;                                                           \
+    pthread_mutex_unlock(&array->mutex);                                       \
+  })
+
+#define dynamic_array_pop(array, index)                                        \
+  ({                                                                           \
+    size_t _index = ((index) == (size_t) - 1) ? (array)->length - 1 : (index); \
+    pthread_mutex_lock(&(array)->mutex);                                       \
+    typeof((array)->buffer[0]) _result = (array)->buffer[_index];              \
+    for (size_t i = _index; i < (array)->length - 1; ++i) {                    \
+      (array)->buffer[i] = (array)->buffer[i + 1];                             \
     }                                                                          \
-    header_p->last_element_index--;                                            \
-    0;                                                                         \
-})
+    (array)->length--;                                                         \
+    pthread_mutex_unlock(&(array)->mutex);                                     \
+    _result;                                                                   \
+  })
 
-#define for_each(array, value)                                                 \
-  for (size_t __i = 0; __header(array)->last_element_index != -1 &&            \
-                       __i <= __header(array)->last_element_index &&           \
-                       ((*value = array[__i]) || 1);                           \
-       ++__i)
+#define dynamic_array_pop_no_mutex(array, index)                               \
+  ({                                                                           \
+    size_t _index = ((index) == (size_t) - 1) ? (array)->length - 1 : (index); \
+    typeof((array)->buffer[0]) _result = (array)->buffer[_index];              \
+    for (size_t i = _index; i < (array)->length - 1; ++i) {                    \
+      (array)->buffer[i] = (array)->buffer[i + 1];                             \
+    }                                                                          \
+    (array)->length--;                                                         \
+    _result;                                                                   \
+  })
 
-#define free_dynamic_array(array) free(__header(array))
+#define dynamic_array_get(array, index)                                        \
+  ({                                                                           \
+    pthread_mutex_lock(&array->mutex);                                         \
+    typeof((array)->buffer[0]) _result = array->buffer[index];                 \
+    pthread_mutex_unlock(&array->mutex);                                       \
+    _result;                                                                   \
+  })
 
-void merge(void *array, size_t left, size_t mid, size_t right,
-           size_t element_size, int (*comparator)(const void *, const void *));
+#define dynamic_array_for_each(array, value)                                   \
+  typeof(array->buffer[0]) value;                                              \
+  for (size_t __i = 0, __ph = pthread_mutex_lock(&(array)->mutex);             \
+       __i < (array)->length && (value = (array)->buffer[__i], 1);             \
+       __i++, (__i == (array)->length ? pthread_mutex_unlock(&(array)->mutex)  \
+                                      : (void)0))
 
-void merge_sort_rec(void *array, size_t left, size_t right, size_t element_size,
-                    int (*comparator)(const void *, const void *));
+#define dynamic_array_for_each_index(array, value, idx)                        \
+  typeof(array->buffer[0]) value;                                              \
+  for (size_t __i = 0, __ph = pthread_mutex_lock(&(array)->mutex), idx = __i;  \
+       __i < (array)->length && (idx = __i, 1) &&                              \
+       (value = (array)->buffer[__i], 1);                                      \
+       __i++, (__i == (array)->length ? pthread_mutex_unlock(&(array)->mutex)  \
+                                      : (void)0))
 
-/*#define merge_sort(array, comparator)                                          \*/
-/*  merge_sort_rec(array, 0, array_length(array) - 1, __header(array)->capacity, \*/
-/*                 comparator)*/
-/**/
-/*void merge(void *array, size_t left, size_t mid, size_t right,*/
-/*           size_t element_size, int (*comparator)(const void *, const void *)) {*/
-/*  size_t n1 = mid - left + 1;*/
-/*  size_t n2 = right - mid;*/
-/**/
-/*  void *L = malloc(n1 * element_size);*/
-/*  void *R = malloc(n2 * element_size);*/
-/**/
-/*  memcpy(L, (char *)array + left * element_size, n1 * element_size);*/
-/*  memcpy(R, (char *)array + (mid + 1) * element_size, n2 * element_size);*/
-/**/
-/*  size_t i = 0, j = 0, k = left;*/
-/*  while (i < n1 && j < n2) {*/
-/*    if (comparator((char *)L + i * element_size,*/
-/*                   (char *)R + j * element_size) <= 0) {*/
-/*      memcpy((char *)array + k * element_size, (char *)L + i * element_size,*/
-/*             element_size);*/
-/*      i++;*/
-/*    } else {*/
-/*      memcpy((char *)array + k * element_size, (char *)R + j * element_size,*/
-/*             element_size);*/
-/*      j++;*/
-/*    }*/
-/*    k++;*/
-/*  }*/
-/**/
-/*  while (i < n1) {*/
-/*    memcpy((char *)array + k * element_size, (char *)L + i * element_size,*/
-/*           element_size);*/
-/*    i++;*/
-/*    k++;*/
-/*  }*/
-/**/
-/*  while (j < n2) {*/
-/*    memcpy((char *)array + k * element_size, (char *)R + j * element_size,*/
-/*           element_size);*/
-/*    j++;*/
-/*    k++;*/
-/*  }*/
-/**/
-/*  free(L);*/
-/*  free(R);*/
-/*}*/
-/**/
-/*void merge_sort_rec(void *array, size_t left, size_t right, size_t element_size,*/
-/*                    int (*comparator)(const void *, const void *)) {*/
-/*  if (left < right) {*/
-/*    size_t mid = left + (right - left) / 2;*/
-/*    merge_sort_rec(array, left, mid, element_size, comparator);*/
-/*    merge_sort_rec(array, mid + 1, right, element_size, comparator);*/
-/*    merge(array, left, mid, right, element_size, comparator);*/
-/*  }*/
-/*}*/
+#define dynamic_array_for_each_index_no_mutex(array, value, idx)               \
+  typeof(array->buffer[0]) value;                                              \
+  for (size_t __i = 0, idx = __i; __i < (array)->length && (idx = __i, 1) &&   \
+                                  (value = (array)->buffer[__i], 1);           \
+       __i++)
+
+#define dynamic_array_index(array, value)                                      \
+  ({                                                                           \
+    dynamic_array_for_each_index(array, v, i) {                                \
+      if (v == value)                                                          \
+        i;                                                                     \
+    }                                                                          \
+    -1;                                                                        \
+  })
+
+#define dynamic_array_index_no_mutex(array, value)                             \
+  ({                                                                           \
+    dynamic_array_for_each_index_no_mutex(array, v, index) {                   \
+      if (v == value)                                                          \
+        index;                                                                 \
+    }                                                                          \
+    -1;                                                                        \
+  })
+
+#define dynamic_array_find_and_remove(array, value)                            \
+  ({                                                                           \
+    pthread_mutex_lock(&array->mutex);                                         \
+    size_t index = dynamic_array_index_no_mutex(array, value);                 \
+    if (index != -1)                                                           \
+      dynamic_array_pop_no_mutex(array, index);                                \
+    pthread_mutex_unlock(&array->mutex);                                       \
+  })

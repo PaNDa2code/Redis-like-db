@@ -54,6 +54,7 @@
           array->value_free_function;                                          \
       dynamic_array_for_each(array, value) value_free_function(value);         \
     }                                                                          \
+    pthread_mutex_destroy(&array->mutex);                                      \
     free(array->buffer);                                                       \
     free(array);                                                               \
   })

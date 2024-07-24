@@ -1,5 +1,6 @@
 #include "hashmap.h"
 #include "commands_functions.h"
+#include "data_structures.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,8 +42,9 @@ int hashmap_set(hashmap_t *hashmap, char *key, void *value) {
     hashmap_bucket_t *prev = NULL;
     do {
       if (strcmp(key, bucket->key) == 0) {
-        if (hashmap->free_value)
+        if (hashmap->free_value){
           hashmap->free_value(bucket->value);
+        }
         bucket->value = value;
         return RE_SUCCESS;
       }

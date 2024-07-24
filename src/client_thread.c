@@ -13,7 +13,7 @@ extern dynamic_array(pthread_t) * thread_pool;
 extern dynamic_array(int) * clients_fds;
 
 void *handle_client(void *arg) {
-  int client_socket = *((int *)arg);
+  int client_socket = ((long long)arg);
   char buffer[MAX_BUFFER_SIZE] = {0};
   ssize_t readed_bytes;
   while (keep_running) {
@@ -23,13 +23,13 @@ void *handle_client(void *arg) {
     } else if (readed_bytes == 0) {
       break;
     } else {
-      dynamic_array(string_ptr_t) *array;
+      dynamic_array(string_ptr_t) * array;
       size_t n;
-      if (parse_command(buffer, (void*)&array) != RE_SUCCESS) {
+      if (parse_command(buffer, (void *)&array) != RE_SUCCESS) {
         char res[] = "-Parsing command failed\r\n";
         send(client_socket, res, sizeof(res) - 1, 0);
       } else {
-        command_run((void*)array, client_socket);
+        command_run((void *)array, client_socket);
         free_dynamic_array(array);
       }
       memset(buffer, 0, MAX_BUFFER_SIZE);

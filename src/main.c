@@ -116,6 +116,9 @@ int main(int argc, char *argv[]) {
     usleep(250);
   }
 
+  free_dynamic_array(clients_fds);
+  free_dynamic_array(thread_pool);
+
   close(server_fd);
 }
 

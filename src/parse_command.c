@@ -1,21 +1,21 @@
-#include "includes.h"
+#include "parse_command.h"
+#include "commands_functions.h"
 #include "data_structures.h"
+#include "dynamic_array.h"
+#include <string.h>
 
-int parse_command(char *input, string_ptr_t **str_array, size_t *n) {
-
+int parse_command(char *input, void **str_ptr_array) {
+  dynamic_array(string_ptr_t) * array;
   input++;
   size_t array_len = strtoul(input, NULL, 10);
 
   if (array_len <= 0)
-    return -1;
+    return RE_FAILED;
 
-  *n = array_len;
+  dynamic_array_init_with_size(&array, array_len);
+  array->value_free_function = free_string;
 
-  string_ptr_t *array = malloc(sizeof(string_t *) * array_len);
-
-  memset(array, 0, array_len * sizeof(string_t *));
-
-  for (int i = 0; i < array_len; ++i) {
+  for (size_t i = 0; i < array_len; ++i) {
     while (*input != 0 && *(input - 1) != '$')
       input++;
 
@@ -24,7 +24,8 @@ int parse_command(char *input, string_ptr_t **str_array, size_t *n) {
     string_ptr_t string_ptr = malloc(sizeof(string_t) + string_len);
 
     if (NULL == string_ptr) {
-      free(array);
+      free_dynamic_array(array);
+      return RE_FAILED;
     }
 
     string_ptr->length = string_len;
@@ -37,23 +38,15 @@ int parse_command(char *input, string_ptr_t **str_array, size_t *n) {
 
     string_ptr->buffer[string_len] = 0;
 
-    array[i] = string_ptr;
+    dynamic_array_push(array, string_ptr);
   }
-  *str_array = array;
-  return 0;
+
+  *str_ptr_array = array;
+  return RE_SUCCESS;
 };
 
-void print_str_array(string_ptr_t *array, size_t n) {
-  for (int i = 0; i < n; ++i) {
-    printf("%s\n", array[i]->buffer);
+void free_string(string_ptr_t str) {
+  if (((string_ptr_t)str)->refrance_count <= 0) {
+    free(str);
   }
 }
-
-void free_string_array(string_ptr_t *array, size_t n) {
-  for (int i = 0; i < n; ++i) {
-    if (array[i]->refrance_count <= 0)
-      free(array[i]);
-  }
-  free(array);
-}
-

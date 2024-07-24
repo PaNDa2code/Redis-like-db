@@ -32,9 +32,6 @@ void free_container(void *contianer) {
 int cleanup_kv_hashmap() {
   pthread_mutex_lock(&read_mutex);
 
-  char *key;
-  char *value;
-
   free_hashmap(kv_hashmap);
 
   pthread_mutex_unlock(&read_mutex);
@@ -64,19 +61,19 @@ int insert_kv(char *key, string_ptr_t value, uint64_t expiry_ms) {
 
   int re = hashmap_set(kv_hashmap, key, (char *)value_container);
 
-  if (re == RE_KEY_EXISTS) {
-    string_container_t *tmp;
-    hashmap_get(kv_hashmap, key, (void **)&tmp);
-    if (tmp->expiry_time.tv_sec) {
-      struct timespec ts;
-      clock_gettime(CLOCK_REALTIME, &ts);
-      if (check_cmpr_timestamp(&ts, &tmp->expiry_time, GREATER_THAN || EQUAL)) {
-        free(value_container);
-        value_container = tmp;
-        re = RE_SUCCESS;
-      }
-    }
-  }
+  /*if (re == RE_KEY_EXISTS) {*/
+  /*  string_container_t *tmp;*/
+  /*  hashmap_get(kv_hashmap, key, (void **)&tmp);*/
+  /*  if (tmp->expiry_time.tv_sec) {*/
+  /*    struct timespec ts;*/
+  /*    clock_gettime(CLOCK_REALTIME, &ts);*/
+  /*    if (check_cmpr_timestamp(&ts, &tmp->expiry_time, GREATER_THAN || EQUAL)) {*/
+  /*      free(value_container);*/
+  /*      value_container = tmp;*/
+  /*      re = RE_SUCCESS;*/
+  /*    }*/
+  /*  }*/
+  /*}*/
 
   if (re != RE_SUCCESS) {
     free(value_container);

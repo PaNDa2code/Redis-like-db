@@ -1,5 +1,8 @@
 CC=gcc
-CF=-lm -lpthread -g -fsanitize=address,undefined -Iinclude -Ofast
+CF=-Iinclude -Ofast -Wall -Wno-unused-value -Wno-unused-variable
+LDF=-lm -lpthread
+DBG=-g -fsanitize=address,undefined 
+
 TARGET=bin/MyRides
 OBJ_DIR=obj/
 SRC_DIR=src/
@@ -26,11 +29,11 @@ clean:
 
 obj/%.o: src/%.c 
 	@echo "[*] Compiling $<"
-	@$(CC) -c $(CF) -o $@ $<
+	@$(CC) -c $(CF) $(DBG) -o $@ $<
 
 $(TARGET): $(OBJECT_FILES)
 	@echo "[*] Linking all together"
-	@$(CC) -o $@ $^ $(CF)
+	@$(CC) -o $@ $^ $(CF) $(DBG) $(LDF)
 
 test: obj/$(U).o tests/test_$(U).c
 	@$(CC) -o bin/test_$(U) $^ $(CF)

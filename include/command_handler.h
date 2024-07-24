@@ -1,4 +1,5 @@
 #pragma once
+#include "dynamic_array.h"
 #include "includes.h"
 #include "parse_command.h"
 
@@ -9,4 +10,4 @@
   }
 
 int init_commands_map();
-void command_run(string_ptr_t* command_string_array, int n, int client_fd);
+void command_run(void* command_string_array, int client_fd);

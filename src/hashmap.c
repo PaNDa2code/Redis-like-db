@@ -5,13 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-hashmap_t *new_hashmap() { return new_n_hashmap(HASHMAP_SIZE); }
+hashmap_t *new_hashmap() { return new_n_hashmap(DEFAULT_HASHMAP_SIZE); }
 
 hashmap_t *new_n_hashmap(size_t n) {
   hashmap_t *map = malloc(sizeof(hashmap_t) + sizeof(hashmap_bucket_t) * n);
-  memset(map, 0, sizeof(hashmap_t) + sizeof(hashmap_bucket_t) * n);
   if (NULL == map)
     return NULL;
+  memset(map, 0, sizeof(hashmap_t) + sizeof(hashmap_bucket_t) * n);
   map->capacity = n;
   map->free_value = free;
   return map;
@@ -20,9 +20,8 @@ hashmap_t *new_n_hashmap(size_t n) {
 int hashmap_resize(hashmap_t **hashmap, size_t new_capacity) {
   char *key, *value;
   hashmap_t *new_hm = new_n_hashmap(new_capacity);
-  FOR_EACH((*hashmap), key, value) {
-    hashmap_set(new_hm, key, value); 
-  } END_FOR_EACH;
+  FOR_EACH((*hashmap), key, value) { hashmap_set(new_hm, key, value); }
+  END_FOR_EACH;
   new_hm->free_value = (*hashmap)->free_value;
   free_hashmap(*hashmap);
   *hashmap = new_hm;
@@ -34,15 +33,16 @@ int hashmap_set(hashmap_t *hashmap, char *key, void *value) {
   if (!hashmap || !key || !value)
     return RE_INVALID_ARGS;
 
-  uint64_t index = str_hash(key);
+  uint64_t index = str_hash(key) % hashmap->capacity;
 
-  hashmap_bucket_t *bucket = &hashmap->buckets[index];
+  hashmap_bucket_t *bucket = hashmap->buckets + index;
 
   if (bucket->status == BUCKET_OCCUPIED) {
     hashmap_bucket_t *prev = NULL;
     do {
-      if (strcmp(key, bucket->key) == 0){
-        if(hashmap->free_value) hashmap->free_value(bucket->value);
+      if (strcmp(key, bucket->key) == 0) {
+        if (hashmap->free_value)
+          hashmap->free_value(bucket->value);
         bucket->value = value;
         return RE_SUCCESS;
       }
@@ -62,6 +62,7 @@ int hashmap_set(hashmap_t *hashmap, char *key, void *value) {
   bucket->key = strdup(key);
   bucket->value = value;
   bucket->status = BUCKET_OCCUPIED;
+  bucket->next = NULL;
 
   return RE_SUCCESS;
 }
@@ -71,7 +72,7 @@ int hashmap_add(hashmap_t *hashmap, char *key, void *value) {
   if (!hashmap || !key || !value)
     return RE_INVALID_ARGS;
 
-  uint64_t index = str_hash(key);
+  uint64_t index = str_hash(key) % hashmap->capacity;
 
   hashmap_bucket_t *bucket = &hashmap->buckets[index];
 
@@ -105,7 +106,7 @@ int hashmap_get(hashmap_t *hashmap, char *key, void **value) {
   if (!hashmap || !key)
     return RE_INVALID_ARGS;
 
-  uint64_t index = str_hash(key);
+  uint64_t index = str_hash(key) % hashmap->capacity;
 
   hashmap_bucket_t *bucket = &hashmap->buckets[index];
 
@@ -129,7 +130,7 @@ void free_hashmap(hashmap_t *hashmap) {
   if (NULL == hashmap)
     return;
 
-  for (size_t i = 0; i < HASHMAP_SIZE; ++i) {
+  for (size_t i = 0; i < hashmap->capacity; ++i) {
     hashmap_bucket_t *bucket = &hashmap->buckets[i];
     if (BUCKET_EMPTY == bucket->status) {
       continue;
@@ -158,7 +159,7 @@ void free_hashmap(hashmap_t *hashmap) {
 
 int hashmap_del(hashmap_t *hashmap, char *key) {
 
-  uint64_t index = str_hash(key);
+  uint64_t index = str_hash(key) % hashmap->capacity;
 
   hashmap_bucket_t *bucket = &hashmap->buckets[index];
 

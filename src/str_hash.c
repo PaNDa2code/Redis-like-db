@@ -10,5 +10,5 @@ uint64_t str_hash(char* string) {
     string++;
   }
 
-  return hash % HASHMAP_SIZE;
+  return hash;
 }

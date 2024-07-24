@@ -1,4 +1,5 @@
 #pragma once
+#include "hashmap.h"
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +10,7 @@
     size_t allocated_length;                                                   \
     size_t length;                                                             \
     size_t item_size;                                                          \
+    void (*value_free_function)(type);                                         \
     pthread_mutex_t mutex;                                                     \
     type *buffer;                                                              \
   }
@@ -21,6 +23,23 @@
     pthread_mutex_init(&__dynamic_array->mutex, NULL);                         \
     __dynamic_array->allocated_length = 10;                                    \
     __dynamic_array->length = 0;                                               \
+    __dynamic_array->value_free_function = NULL;                               \
+    __dynamic_array->size =                                                    \
+        __dynamic_array->item_size * __dynamic_array->allocated_length;        \
+    __dynamic_array->buffer = malloc(__dynamic_array->size);                   \
+    memset(__dynamic_array->buffer, 0, __dynamic_array->size);                 \
+    *array_ptr = (void *)__dynamic_array;                                      \
+  })
+
+#define dynamic_array_init_with_size(array_ptr, array_size)                    \
+  ({                                                                           \
+    dynamic_array(typeof((*array_ptr)->buffer[0])) *__dynamic_array =          \
+        malloc(sizeof(*__dynamic_array));                                      \
+    __dynamic_array->item_size = sizeof(typeof((*array_ptr)->buffer[0]));      \
+    pthread_mutex_init(&__dynamic_array->mutex, NULL);                         \
+    __dynamic_array->allocated_length = array_size;                            \
+    __dynamic_array->length = 0;                                               \
+    __dynamic_array->value_free_function = NULL;                               \
     __dynamic_array->size =                                                    \
         __dynamic_array->item_size * __dynamic_array->allocated_length;        \
     __dynamic_array->buffer = malloc(__dynamic_array->size);                   \
@@ -30,6 +49,11 @@
 
 #define free_dynamic_array(array)                                              \
   ({                                                                           \
+    if (array->value_free_function) {                                          \
+      void (*value_free_function)(typeof(array->buffer[0])) =                  \
+          array->value_free_function;                                          \
+      dynamic_array_for_each(array, value) value_free_function(value);         \
+    }                                                                          \
     free(array->buffer);                                                       \
     free(array);                                                               \
   })

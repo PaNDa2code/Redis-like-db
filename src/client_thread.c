@@ -1,17 +1,16 @@
-
 #include "command_handler.h"
+#include "commands_functions.h"
 #include "dynamic_array.h"
 #include "kv_database.h"
 #include "parse_command.h"
-#include <stdint.h>
 
 extern bool keep_running;
 extern uint32_t connected_clients;
 
 #define MAX_BUFFER_SIZE 1024
 
-extern dynamic_array(pthread_t)* thread_pool;
-extern dynamic_array(int)* clients_fds;
+extern dynamic_array(pthread_t) * thread_pool;
+extern dynamic_array(int) * clients_fds;
 
 void *handle_client(void *arg) {
   int client_socket = *((int *)arg);
@@ -24,17 +23,22 @@ void *handle_client(void *arg) {
     } else if (readed_bytes == 0) {
       break;
     } else {
-      string_ptr_t *arr;
+      dynamic_array(string_ptr_t) *array;
       size_t n;
-      parse_command(buffer, &arr, &n);
-      command_run(arr, n, client_socket);
-      free_string_array(arr, n);
+      if (parse_command(buffer, (void*)&array) != RE_SUCCESS) {
+        char res[] = "-Parsing command failed\r\n";
+        send(client_socket, res, sizeof(res) - 1, 0);
+      } else {
+        command_run((void*)array, client_socket);
+        free_dynamic_array(array);
+      }
       memset(buffer, 0, MAX_BUFFER_SIZE);
     }
   }
 
   close(client_socket);
   dynamic_array_find_and_remove(clients_fds, client_socket);
+  dynamic_array_find_and_remove(thread_pool, pthread_self());
   connected_clients--;
   return NULL;
 }

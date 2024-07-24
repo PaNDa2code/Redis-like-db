@@ -18,4 +18,3 @@
 #include <stdbool.h>
 #include <signal.h>
 
-#pragma end

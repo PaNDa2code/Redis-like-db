@@ -73,7 +73,6 @@ int main(int argc, char *argv[]) {
   LOG("Listening on port %d", port_number);
 
   while (keep_running) {
-    int id = 0;
     if ((new_socket =
              accept(server_fd, (struct sockaddr *)&address, &addr_len)) < 0) {
       if (!keep_running) {
@@ -99,7 +98,7 @@ int main(int argc, char *argv[]) {
       perror("pthread_create");
       close(new_socket);
     } else {
-      LOG("Accepted connection - ip:%s:%d",inet_ntoa(address.sin_addr), address.sin_port);
+      LOG("Accepted connection - ip:%s:%d", inet_ntoa(address.sin_addr), address.sin_port);
       dynamic_array_push(thread_pool, ptid);
 
       // detaching the threads so "The resources of TH will therefore be freed

@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define HASHMAP_SIZE 10000
+#define DEFAULT_HASHMAP_SIZE 1000000
 
 enum _hash_bucket_status {
   BUCKET_EMPTY = 0x00,
@@ -30,6 +30,8 @@ uint64_t str_hash(char *string);
 hashmap_t *new_n_hashmap(size_t n);
 
 hashmap_t *new_hashmap();
+
+int hashmap_resize(hashmap_t **hashmap, size_t new_capacity);
 
 int hashmap_add(hashmap_t *hashmap, char *key, void *value);
 
@@ -99,4 +101,3 @@ void free_hashmap(hashmap_t *hashmap);
   }                                                                            \
   }                                                                            \
   }
-#pragma end

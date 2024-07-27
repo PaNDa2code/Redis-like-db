@@ -21,7 +21,10 @@ typedef void (*free_function_t)(void *);
 
 typedef struct {
   size_t capacity;
+  size_t occupied_buckets;
+  size_t max_collitions;
   free_function_t free_value;
+  free_function_t free_key;
   hashmap_bucket_t buckets[0];
 } hashmap_t;
 

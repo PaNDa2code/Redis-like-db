@@ -15,6 +15,7 @@ hashmap_t *new_n_hashmap(size_t n) {
   memset(map, 0, sizeof(hashmap_t) + sizeof(hashmap_bucket_t) * n);
   map->capacity = n;
   map->free_value = free;
+  map->free_key = free;
   return map;
 }
 
@@ -23,7 +24,10 @@ int hashmap_resize(hashmap_t **hashmap, size_t new_capacity) {
   hashmap_t *new_hm = new_n_hashmap(new_capacity);
   FOR_EACH((*hashmap), key, value) { hashmap_set(new_hm, key, value); }
   END_FOR_EACH;
-  new_hm->free_value = (*hashmap)->free_value;
+
+  new_hm->free_value = (*hashmap)->free_value, new_hm->free_key = (*hashmap)->free_key;
+  (*hashmap)->free_key = NULL, (*hashmap)->free_value = NULL;
+
   free_hashmap(*hashmap);
   *hashmap = new_hm;
   return RE_SUCCESS;
@@ -38,18 +42,24 @@ int hashmap_set(hashmap_t *hashmap, char *key, void *value) {
 
   hashmap_bucket_t *bucket = hashmap->buckets + index;
 
+  size_t collition = 0;
   if (bucket->status == BUCKET_OCCUPIED) {
     hashmap_bucket_t *prev = NULL;
     do {
       if (strcmp(key, bucket->key) == 0) {
-        if (hashmap->free_value){
+        if (hashmap->free_value)
           hashmap->free_value(bucket->value);
-        }
+        free(key);
         bucket->value = value;
+        hashmap->occupied_buckets++;
+        hashmap->max_collitions = (hashmap->max_collitions < collition)
+                                      ? collition
+                                      : hashmap->max_collitions;
         return RE_SUCCESS;
       }
       prev = bucket;
       bucket = bucket->next;
+      collition++;
     } while (bucket);
 
     prev->next = malloc(sizeof(hashmap_bucket_t));
@@ -61,10 +71,11 @@ int hashmap_set(hashmap_t *hashmap, char *key, void *value) {
     return RE_FAILED;
   }
 
-  bucket->key = strdup(key);
+  bucket->key = key;
   bucket->value = value;
   bucket->status = BUCKET_OCCUPIED;
   bucket->next = NULL;
+  hashmap->occupied_buckets++;
 
   return RE_SUCCESS;
 }
@@ -96,7 +107,7 @@ int hashmap_add(hashmap_t *hashmap, char *key, void *value) {
     return RE_FAILED;
   }
 
-  bucket->key = strdup(key);
+  bucket->key = key;
   bucket->value = value;
   bucket->status = BUCKET_OCCUPIED;
 
@@ -138,7 +149,8 @@ void free_hashmap(hashmap_t *hashmap) {
       continue;
     }
     if (BUCKET_OCCUPIED == bucket->status) {
-      free(bucket->key);
+      if (NULL != hashmap->free_key)
+        hashmap->free_key(bucket->key);
       if (NULL != hashmap->free_value)
         hashmap->free_value(bucket->value);
     }
@@ -148,7 +160,8 @@ void free_hashmap(hashmap_t *hashmap) {
     while (NULL != bucket) {
       hashmap_bucket_t *next_bucket = bucket->next;
       if (BUCKET_OCCUPIED == bucket->status) {
-        free(bucket->key);
+        if (NULL != hashmap->free_key)
+          hashmap->free_key(bucket->key);
         if (NULL != hashmap->free_value)
           hashmap->free_value(bucket->value);
       }
@@ -172,8 +185,9 @@ int hashmap_del(hashmap_t *hashmap, char *key) {
 
   while (bucket) {
     if (BUCKET_OCCUPIED == bucket->status && strcmp(bucket->key, key) == 0) {
-      free(bucket->key);
       bucket->status = BUCKET_ERASED;
+      if (NULL != hashmap->free_key)
+        hashmap->free_key(bucket->key);
       if (NULL != hashmap->free_value)
         hashmap->free_value(bucket->value);
       if (prev_bucket) {

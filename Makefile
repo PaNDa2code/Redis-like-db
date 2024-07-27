@@ -1,7 +1,7 @@
 CC=gcc
 CF=-Iinclude -Ofast -Wall -Wno-unused-value -Wno-unused-variable
 LDF=-lm -lpthread
-DBG=-g -fsanitize=address,undefined 
+DBG=-g3 -fsanitize=address,undefined
 
 TARGET=bin/MyRides
 OBJ_DIR=obj/

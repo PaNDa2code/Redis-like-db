@@ -20,7 +20,7 @@ void free_container(void *contianer);
 int init_kv_hashmap() {
   printf("initializing kv hashmap\n");
   kv_hashmap = new_hashmap();
-  kv_hashmap->free_value = free_container;
+  kv_hashmap->free_value = free_container, kv_hashmap->free_key = free;
   return 0;
 }
 
@@ -31,6 +31,7 @@ void free_container(void *contianer) {
 
 int cleanup_kv_hashmap() {
   pthread_mutex_lock(&read_mutex);
+  printf("Hash max collition is %zu\n", kv_hashmap->max_collitions);
   free_hashmap(kv_hashmap);
   pthread_mutex_unlock(&read_mutex);
   return RE_SUCCESS;
@@ -57,9 +58,11 @@ int insert_kv(char *key, string_ptr_t value, uint64_t expiry_ms) {
     goto EXIT;
   }
 
-  int re = hashmap_set(kv_hashmap, key, value_container);
+  char* keyd = strdup(key);
+  int re = hashmap_set(kv_hashmap, keyd, value_container);
 
   if (re != RE_SUCCESS) {
+    free(keyd);
     free(value_container);
     return_value = re;
     goto EXIT;
@@ -75,6 +78,10 @@ int insert_kv(char *key, string_ptr_t value, uint64_t expiry_ms) {
     add_mc_timestamp(&value_container->expiry_time, expiry_ms);
   } else {
     memset(&value_container->expiry_time, 0, sizeof(struct timespec));
+  }
+
+  if((float)kv_hashmap->occupied_buckets / kv_hashmap->capacity > 0.75 || kv_hashmap->max_collitions >= 10) {
+    hashmap_resize(&kv_hashmap, kv_hashmap->capacity * 2);
   }
 
   /*value->refrance_count++;*/

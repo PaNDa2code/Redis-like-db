@@ -32,7 +32,7 @@ void *handle_client(void *arg) {
         command_run((void *)array, client_socket);
         free_dynamic_array(array);
       }
-      memset(buffer, 0, MAX_BUFFER_SIZE);
+      memset(buffer, 0, readed_bytes);
     }
   }
 

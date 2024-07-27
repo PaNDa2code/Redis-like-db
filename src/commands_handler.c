@@ -14,6 +14,7 @@ int init_commands_map() {
   commands_map = new_hashmap();
   // since the values are functions, we don't want to free them.
   commands_map->free_value = NULL;
+  commands_map->free_key = NULL;
 
   hashmap_set(commands_map, "PING", ping);
   hashmap_set(commands_map, "GET", kv_get);

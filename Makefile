@@ -15,14 +15,14 @@ mode?=debug
 ifeq ($(mode), debug)
 	CF+=-g3 -fsanitize=address,undefined -Wall -Wno-unused-value -Wno-unused-variable
 else ifeq ($(mode), release)
-	CF+=-O3 -s
+	# `-flto` is a real magic ^_^
+	CF+=-Ofast -s -flto
 endif
 
-all: $(TARGET)
+all: print-mode $(TARGET)
 
-run: $(C_FILES)
-	@$(CC) $(CF) -o bin/MyRides $^
-	@./bin/MyRides
+print-mode:
+	@echo "[!] Build mode: $(mode)"
 
 gdb_debug: $(TARGET)
 	gdb $<
@@ -32,10 +32,10 @@ clean:
 
 obj/%.o: src/%.c 
 	@echo "[*] Compiling $<"
-	@$(CC) -c $(CF) $(DBG) -o $@ $<
+	@$(CC) -c $(CF) -o $@ $<
 
 $(TARGET): $(OBJECT_FILES)
 	@echo "[*] Linking all together"
-	@$(CC) -o $@ $^ $(CF) $(DBG) $(LDF)
+	@$(CC) -o $@ $^ $(CF) $(LDF)
 
 .PHONY: all clean run gdb_debug

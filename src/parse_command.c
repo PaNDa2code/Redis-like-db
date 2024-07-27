@@ -4,44 +4,25 @@
 #include "dynamic_array.h"
 #include <string.h>
 
-int parse_command(char *input, void **str_ptr_array) {
-  dynamic_array(string_ptr_t) * array;
-  input++;
-  size_t array_len = strtoul(input, NULL, 10);
+int command_tokenize(char *input, string_tokens_t **str_ptr_array) {
+  char *token;
 
-  if (array_len <= 0)
-    return RE_FAILED;
+  size_t tokens_count = strtoul(input + 1, &input, 10);
 
-  dynamic_array_init_with_size(&array, array_len);
-  array->value_free_function = free_string;
+  *str_ptr_array =
+      malloc(sizeof(string_tokens_t) + tokens_count * sizeof(size_t));
+  (*str_ptr_array)->tokens_count = tokens_count;
 
-  for (size_t i = 0; i < array_len; ++i) {
-    while (*input != 0 && *(input - 1) != '$')
-      input++;
+  char **tokens = (*str_ptr_array)->tokens;
 
-    size_t string_len = strtoul(input, NULL, 10);
-
-    string_ptr_t string_ptr = malloc(sizeof(string_t) + string_len);
-
-    if (NULL == string_ptr) {
-      free_dynamic_array(array);
-      return RE_FAILED;
-    }
-
-    string_ptr->length = string_len;
-    string_ptr->refrance_count = 0;
-
-    while (*input != 0 && *(input - 1) != '\n')
-      input++; // go to the frist chracter next to \n
-
-    mempcpy(string_ptr->buffer, input, string_len);
-
-    string_ptr->buffer[string_len] = 0;
-
-    dynamic_array_push(array, string_ptr);
+  for (size_t i = 0; i < tokens_count; i++) {
+    input = strchr(input, '$') + 1;
+    size_t strlen = strtoul(input, NULL, 10);
+    input = strchr(input, '\n') + 1;
+    tokens[i] = input;
+    input += strlen + 2;
+    tokens[i][strlen] = 0;
   }
-
-  *str_ptr_array = array;
   return RE_SUCCESS;
 };
 

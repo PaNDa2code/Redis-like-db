@@ -37,7 +37,7 @@ int cleanup_kv_hashmap() {
   return RE_SUCCESS;
 }
 
-int insert_kv(char *key, string_ptr_t value, uint64_t expiry_ms) {
+int insert_kv(char *key, char *value, uint64_t expiry_ms) {
 
   int return_value;
 
@@ -58,7 +58,7 @@ int insert_kv(char *key, string_ptr_t value, uint64_t expiry_ms) {
     goto EXIT;
   }
 
-  char* keyd = strdup(key);
+  char *keyd = strdup(key);
   int re = hashmap_set(kv_hashmap, keyd, value_container);
 
   if (re != RE_SUCCESS) {
@@ -68,8 +68,11 @@ int insert_kv(char *key, string_ptr_t value, uint64_t expiry_ms) {
     goto EXIT;
   }
 
-  value_container->string = malloc(sizeof(string_t) + value->length);
-  memcpy(value_container->string, value, sizeof(string_t) + value->length);
+  size_t value_len = strlen(value);
+  value_container->string = malloc(sizeof(string_t) + value_len);
+  value_container->string->length = value_len;
+  memcpy(value_container->string->buffer, value, value_len);
+  value_container->string->buffer[value_len] = 0;
 
   clock_gettime(CLOCK_REALTIME, &value_container->insertion_time);
 
@@ -80,7 +83,8 @@ int insert_kv(char *key, string_ptr_t value, uint64_t expiry_ms) {
     memset(&value_container->expiry_time, 0, sizeof(struct timespec));
   }
 
-  if((float)kv_hashmap->occupied_buckets / kv_hashmap->capacity > 0.75 || kv_hashmap->max_collitions >= 10) {
+  if ((float)kv_hashmap->occupied_buckets / kv_hashmap->capacity > 0.75 ||
+      kv_hashmap->max_collitions >= 10) {
     hashmap_resize(&kv_hashmap, kv_hashmap->capacity * 2);
   }
 
@@ -138,4 +142,3 @@ int delete_kv(char *key) {
   pthread_mutex_unlock(&write_mutex);
   return RE_SUCCESS;
 }
-

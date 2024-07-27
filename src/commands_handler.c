@@ -3,7 +3,7 @@
 #include "dynamic_array.h"
 #include "hashmap.h"
 
-typedef int (*command_function_t)(void *command_dynamic_array, int client_fd);
+typedef int (*command_function_t)(string_tokens_t *, int client_fd);
 
 hashmap_t *commands_map = NULL;
 
@@ -28,12 +28,11 @@ void clean_commands_map() {
   free_hashmap(commands_map);
 }
 
-void command_run(void *command_dynamic_array, int client_fd) {
-  dynamic_array(string_ptr_t) *command = command_dynamic_array;
-  char *key = dynamic_array_get(command, 0)->buffer;
+void command_run(string_tokens_t *command_tokens, int client_fd) {
+  char *key = command_tokens->tokens[0];
   command_function_t function = NULL;
   if (hashmap_get(commands_map, key, (void **)&function) == RE_SUCCESS) {
-    function(command_dynamic_array, client_fd);
+    function(command_tokens, client_fd);
   } else {
     send(client_fd, "-Command not found\r\n", 20, 0);
     return;

@@ -1,5 +1,6 @@
 #include "command_handler.h"
 #include "commands_functions.h"
+#include "data_structures.h"
 #include "dynamic_array.h"
 #include "kv_database.h"
 #include "parse_command.h"
@@ -23,14 +24,13 @@ void *handle_client(void *arg) {
     } else if (readed_bytes == 0) {
       break;
     } else {
-      dynamic_array(string_ptr_t) * array;
-      size_t n;
-      if (parse_command(buffer, (void *)&array) != RE_SUCCESS) {
+      string_tokens_t *command_tokens;
+      if (command_tokenize(buffer, &command_tokens) != RE_SUCCESS) {
         char res[] = "-Parsing command failed\r\n";
         send(client_socket, res, sizeof(res) - 1, 0);
       } else {
-        command_run((void *)array, client_socket);
-        free_dynamic_array(array);
+        command_run(command_tokens, client_socket);
+        free(command_tokens);
       }
       memset(buffer, 0, readed_bytes);
     }

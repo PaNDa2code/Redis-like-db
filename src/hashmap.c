@@ -1,10 +1,5 @@
 #include "hashmap.h"
 #include "commands_functions.h"
-#include "data_structures.h"
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 hashmap_t *new_hashmap() { return new_n_hashmap(DEFAULT_HASHMAP_SIZE); }
 

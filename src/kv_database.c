@@ -1,6 +1,8 @@
 #include "kv_database.h"
 #include "commands_functions.h"
 #include "data_structures.h"
+#include "dynamic_array.h"
+#include "expiry_cleaner.h"
 #include "hashmap.h"
 #include "timespec_util.h"
 #include <bits/time.h>
@@ -15,6 +17,8 @@ pthread_cond_t reading_lock_cond = PTHREAD_COND_INITIALIZER;
 
 bool writing = false;
 
+extern dynamic_array(string_container_t *) * timed_data_queue;
+
 void free_container(void *contianer);
 
 int init_kv_hashmap() {
@@ -25,13 +29,13 @@ int init_kv_hashmap() {
 }
 
 void free_container(void *contianer) {
+  dynamic_array_find_and_remove(timed_data_queue, contianer);
   free(((string_container_t *)contianer)->string);
   free(contianer);
 }
 
 int cleanup_kv_hashmap() {
   pthread_mutex_lock(&read_mutex);
-  printf("Hash max collition is %zu\n", kv_hashmap->max_collitions);
   free_hashmap(kv_hashmap);
   pthread_mutex_unlock(&read_mutex);
   return RE_SUCCESS;
@@ -59,6 +63,19 @@ int insert_kv(char *key, char *value, uint64_t expiry_ms) {
   }
 
   char *keyd = strdup(key);
+
+  string_container_t *old_value = NULL;
+  switch (hashmap_get(kv_hashmap, keyd, (void **)&old_value)) {
+  case RE_SUCCESS:
+    if (old_value->expiry_time.tv_sec) {
+      dynamic_array_find_and_remove(timed_data_queue, old_value);
+      hashmap_del(kv_hashmap, keyd);
+    }
+    break;
+  default:
+    break;
+  }
+
   int re = hashmap_set(kv_hashmap, keyd, value_container);
 
   if (re != RE_SUCCESS) {
@@ -70,6 +87,7 @@ int insert_kv(char *key, char *value, uint64_t expiry_ms) {
 
   size_t value_len = strlen(value);
   value_container->string = malloc(sizeof(string_t) + value_len);
+  value_container->key = keyd;
   value_container->string->length = value_len;
   memcpy(value_container->string->buffer, value, value_len);
   value_container->string->buffer[value_len] = 0;
@@ -78,7 +96,9 @@ int insert_kv(char *key, char *value, uint64_t expiry_ms) {
 
   if (expiry_ms) {
     value_container->expiry_time = value_container->insertion_time;
+    /*memcpy(&value_container->expiry_time, &value_container->insertion_time, sizeof(struct timespec));*/
     add_mc_timestamp(&value_container->expiry_time, expiry_ms);
+    expiry_data_push(value_container);
   } else {
     memset(&value_container->expiry_time, 0, sizeof(struct timespec));
   }
@@ -118,14 +138,14 @@ int lookup_kv(char *key, string_ptr_t *value) {
     return RE_KEY_NOT_FOUND;
   };
 
-  if (contianer->expiry_time.tv_sec) {
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    if (cmpr_timestamp(&ts, &contianer->expiry_time) != LESS_THAN) {
-      delete_kv(key);
-      return RE_KEY_NOT_FOUND;
-    }
-  }
+  /*if (contianer->expiry_time.tv_sec) {*/
+  /*  struct timespec ts;*/
+  /*  clock_gettime(CLOCK_REALTIME, &ts);*/
+  /*  if (cmpr_timestamp(&ts, &contianer->expiry_time) != LESS_THAN) {*/
+  /*    delete_kv(key);*/
+  /*    return RE_KEY_NOT_FOUND;*/
+  /*  }*/
+  /*}*/
 
   *value = contianer->string;
 
@@ -136,6 +156,10 @@ int delete_kv(char *key) {
   // this will wait if the mutex is already locked until it's unlocked
   // according to the man page of pthread_mutex_lock()
   pthread_mutex_lock(&write_mutex);
+
+  string_container_t *value;
+  hashmap_get(kv_hashmap, key, (void **)&value);
+  dynamic_array_find_and_remove(timed_data_queue, value);
 
   hashmap_del(kv_hashmap, key);
 

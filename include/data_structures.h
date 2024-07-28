@@ -14,12 +14,13 @@ typedef struct string_slice {
 } string_slice_t;
 
 typedef struct string_tokens {
-    char *base_string;
-    size_t tokens_count;
-    char *tokens[0];
+  char *base_string;
+  size_t tokens_count;
+  char *tokens[0];
 } string_tokens_t;
 
 typedef struct {
   struct timespec insertion_time, expiry_time;
+  char *key;
   string_ptr_t string;
 } string_container_t;

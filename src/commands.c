@@ -38,9 +38,9 @@ int kv_set(string_tokens_t *command_tokens, int client_fd) {
     SEND_C_STRING(
         "-command \'SET\' requires argumnts \'KEY\' and \'VALUE\'\r\n");
     return 0;
-  } else if (command_tokens->tokens_count > 4) {
+  } else if (command_tokens->tokens_count > 3) {
     if (strcmp(command_tokens->tokens[3], "PX") == 0) {
-      if (!(command_tokens->tokens_count > 4)) {
+      if (command_tokens->tokens_count < 5) {
         SEND_C_STRING("-missing \'PX\' value\r\n");
         return 0;
       }

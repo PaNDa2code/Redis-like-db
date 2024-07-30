@@ -44,7 +44,8 @@ int hashmap_set(hashmap_t *hashmap, char *key, void *value) {
       if (strcmp(key, bucket->key) == 0) {
         if (hashmap->free_value)
           hashmap->free_value(bucket->value);
-        free(key);
+        free(bucket->key);
+        bucket->key = key;
         bucket->value = value;
         hashmap->occupied_buckets++;
         hashmap->max_collitions = (hashmap->max_collitions < collition)

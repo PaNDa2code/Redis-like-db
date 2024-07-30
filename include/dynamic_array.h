@@ -85,15 +85,15 @@
     pthread_mutex_unlock(&array->mutex);                                       \
   })
 
-#define dynamic_array_push_in_order(array, value, cmp_fun)                     \
+#define dynamic_array_push_in_order(array, value, is_less_than_cmp_fun)        \
   ({                                                                           \
     pthread_mutex_lock(&array->mutex);                                         \
     if (array->length == array->allocated_length) {                            \
-      dynamic_array_resize(array, array->length * 2);                          \
+      dynamic_array_resize_no_mutex(array, array->length * 2);                 \
     }                                                                          \
     int64_t i;                                                                 \
-    for (i = array->length - 1; (i >= 0 && cmp_fun(array->buffer[i], value));  \
-         --i) {                                                                \
+    for (i = array->length - 1;                                                \
+         (i >= 0 && is_less_than_cmp_fun(array->buffer[i], value)); --i) {     \
       array->buffer[i + 1] = array->buffer[i];                                 \
     }                                                                          \
     array->buffer[i + 1] = value;                                              \
@@ -103,7 +103,7 @@
 
 #define dynamic_array_pop(array, index)                                        \
   ({                                                                           \
-    size_t _index = ((index) == - 1) ? (array)->length - 1 : (index); \
+    size_t _index = ((index) == -1) ? (array)->length - 1 : (index);           \
     pthread_mutex_lock(&(array)->mutex);                                       \
     typeof((array)->buffer[0]) _result = (array)->buffer[_index];              \
     for (size_t i = _index; i < (array)->length - 1; ++i) {                    \
@@ -116,8 +116,9 @@
 
 #define dynamic_array_pop_no_mutex(array, index)                               \
   ({                                                                           \
-    size_t _index = ((index) == - 1) ? (array)->length - 1 : (index); \
+    size_t _index = ((index) == -1) ? (array)->length - 1 : (index);           \
     typeof((array)->buffer[0]) _result = (array)->buffer[_index];              \
+    (array)->buffer[_index] = (typeof((array)->buffer[0]))0;                   \
     if ((array)->length == 1 && index == 0) {                                  \
       (array)->buffer[0] = (typeof((array)->buffer[0]))0;                      \
     }                                                                          \
@@ -130,27 +131,32 @@
 
 #define dynamic_array_get(array, index)                                        \
   ({                                                                           \
-    size_t _index = ((index) == - 1) ? (array)->length - 1 : (index); \
+    size_t _index = ((index) == -1) ? (array)->length - 1 : (index);           \
     pthread_mutex_lock(&array->mutex);                                         \
-    typeof((array)->buffer[0]) _result = array->buffer[index];                 \
+    typeof((array)->buffer[0]) _result = array->buffer[_index];                \
     pthread_mutex_unlock(&array->mutex);                                       \
     _result;                                                                   \
   })
 
 #define dynamic_array_for_each(array, value)                                   \
   typeof(array->buffer[0]) value;                                              \
-  for (size_t __i = 0, __ph = pthread_mutex_lock(&(array)->mutex);             \
+  pthread_mutex_t *__array_mutex = &(array)->mutex;                            \
+  for (size_t __i = 0, __ph = pthread_mutex_lock(__array_mutex);               \
        __i < (array)->length && (value = (array)->buffer[__i], 1);             \
-       __i++, (__i == (array)->length ? pthread_mutex_unlock(&(array)->mutex)  \
+       __i++, (__i == (array)->length ? pthread_mutex_unlock(__array_mutex)    \
                                       : (void)0))
 
 #define dynamic_array_for_each_index(array, value, idx)                        \
   typeof(array->buffer[0]) value;                                              \
-  for (size_t __i = 0, __ph = pthread_mutex_lock(&(array)->mutex), idx = __i;  \
+  pthread_mutex_t *__array_mutex = &(array)->mutex;                            \
+  for (size_t __i = 0, __ph = pthread_mutex_lock(__array_mutex), idx = __i;    \
        __i < (array)->length && (idx = __i, 1) &&                              \
        (value = (array)->buffer[__i], 1);                                      \
-       __i++, (__i == (array)->length ? pthread_mutex_unlock(&(array)->mutex)  \
+       __i++, (__i == (array)->length ? pthread_mutex_unlock(__array_mutex)    \
                                       : (void)0))
+#define dynamic_array_for_each_break                                           \
+  pthread_mutex_unlock(__array_mutex);                                         \
+  break;
 
 #define dynamic_array_for_each_index_no_mutex(array, value, idx)               \
   typeof(array->buffer[0]) value;                                              \
@@ -179,7 +185,7 @@
 #define dynamic_array_find_and_remove(array, value)                            \
   ({                                                                           \
     pthread_mutex_lock(&array->mutex);                                         \
-    ssize_t index = dynamic_array_index_no_mutex(array, value);                 \
+    ssize_t index = dynamic_array_index_no_mutex(array, value);                \
     if (index != -1)                                                           \
       dynamic_array_pop_no_mutex(array, index);                                \
     pthread_mutex_unlock(&array->mutex);                                       \

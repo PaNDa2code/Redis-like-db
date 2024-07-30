@@ -21,6 +21,7 @@ typedef struct string_tokens {
 
 typedef struct {
   struct timespec insertion_time, expiry_time;
+  bool expired;
   char *key;
   string_ptr_t string;
 } string_container_t;

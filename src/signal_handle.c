@@ -1,3 +1,4 @@
+#include "expiry_cleaner.h"
 #include "includes.h"
 #include "network.h"
 #include "dynamic_array.h"
@@ -29,6 +30,8 @@ void signal_handler(int sigint) {
     shutdown(clients_fd, SHUT_RD);
     close(clients_fd);
   }
+
+  expiry_cleanup_exit();
 
   cleanup_kv_hashmap();
   clean_commands_map();

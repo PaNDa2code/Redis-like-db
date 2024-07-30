@@ -2,7 +2,7 @@ CC=gcc
 CF=-Iinclude
 LDF=-lm -lpthread
 
-TARGET=bin/MyRides
+TARGET=bin/Redis
 OBJ_DIR=obj/
 SRC_DIR=src/
 

@@ -22,13 +22,13 @@ void expiry_cleanup() {
   struct timespec now;
   int rc;
 
+  dynamic_array_init(&timed_data_queue);
+  timed_data_queue->value_free_function = NULL;
+
   while (keep_running) {
 
     pthread_mutex_lock(&sleep_mutex);
     if (timed_data_queue->length) {
-
-      printf("We got data to wait for.\n");
-
       // this will return the last item in the array
       value = dynamic_array_get(timed_data_queue, -1);
 
@@ -45,11 +45,12 @@ void expiry_cleanup() {
         break;
       }
     } else {
-      printf("There is no timed data, waiting for it.\n");
       pthread_cond_wait(&sleep_condtion, &sleep_mutex);
     }
     pthread_mutex_unlock(&sleep_mutex);
   }
+
+  free_dynamic_array(timed_data_queue);
 }
 
 void expiry_data_push(string_container_t *value) {
@@ -62,14 +63,14 @@ void expiry_data_push(string_container_t *value) {
 }
 
 void cancel_container_timer(string_container_t *container) {
-  if (container == NULL || container->expired) {
+  if (container == NULL) {
     return;
   }
   pthread_mutex_lock(&sleep_mutex);
   dynamic_array_for_each_index(timed_data_queue, cont, index){
-    if(strcmp(container->key, cont->key) == 0){
+    if(cont == container){
       dynamic_array_pop_no_mutex(timed_data_queue, index);
-      dynamic_array_for_each_break;
+      dynamic_array_for_each_break
     }
   }
   pthread_cond_signal(&sleep_condtion);
@@ -77,7 +78,9 @@ void cancel_container_timer(string_container_t *container) {
 }
 
 void expiry_cleanup_exit() {
-  pthread_cond_signal(&sleep_condtion);
+  pthread_cond_broadcast(&sleep_condtion);
+  pthread_cond_destroy(&sleep_condtion);
+  pthread_mutex_destroy(&sleep_mutex);
   pthread_join(expiry_cleanup_ptid, NULL);
 }
 

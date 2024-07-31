@@ -15,8 +15,6 @@ int startup() {
   thread_pool->value_free_function = NULL;
   dynamic_array_init(&clients_fds);
   clients_fds->value_free_function = NULL;
-  dynamic_array_init(&timed_data_queue);
-  timed_data_queue->value_free_function = NULL;
 
   pthread_create(&expiry_cleanup_ptid, NULL, (void *(*)(void *))expiry_cleanup, NULL);
   init_commands_map();

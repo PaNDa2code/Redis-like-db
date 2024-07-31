@@ -1,24 +1,12 @@
 #include "kv_database.h"
 #include "commands_functions.h"
-#include "data_structures.h"
-#include "dynamic_array.h"
 #include "expiry_cleaner.h"
 #include "hashmap.h"
 #include "timespec_util.h"
-#include <bits/time.h>
-#include <stdbool.h>
-#include <time.h>
 
 hashmap_t *kv_hashmap;
 
-pthread_mutex_t read_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t write_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-pthread_cond_t reading_lock_cond = PTHREAD_COND_INITIALIZER;
-
-bool writing = false;
-
-extern dynamic_array(string_container_t *) * timed_data_queue;
+pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 void free_container(void *contianer);
 
@@ -31,7 +19,7 @@ int init_kv_hashmap() {
 }
 
 void free_container(void *contianer) {
-  if (((string_container_t *)contianer)->expiry_time.tv_sec) {
+  if (((string_container_t *)contianer)->expiry_time.tv_sec && !((string_container_t *)contianer)->expired) {
     cancel_container_timer(contianer);
   }
   free(((string_container_t *)contianer)->string);
@@ -39,9 +27,10 @@ void free_container(void *contianer) {
 }
 
 int cleanup_kv_hashmap() {
-  pthread_mutex_lock(&read_mutex);
+  pthread_rwlock_wrlock(&rwlock);
   free_hashmap(kv_hashmap);
-  pthread_mutex_unlock(&read_mutex);
+  pthread_rwlock_unlock(&rwlock);
+  pthread_rwlock_destroy(&rwlock);
   return RE_SUCCESS;
 }
 
@@ -50,33 +39,17 @@ int insert_kv(char *key, char *value, uint64_t expiry_ms) {
   int return_value;
 
   if (key == NULL || value == NULL) {
-    return_value = RE_INVALID_ARGS;
-    goto EXIT;
+    return RE_INVALID_ARGS;
   }
-
-  pthread_mutex_lock(&write_mutex);
-
-  writing = true;
 
   string_container_t *value_container = malloc(sizeof(string_container_t));
 
   if (!value_container) {
     // it can be memory or fragmantion issue
-    return_value = RE_OUT_OF_MEMORY;
-    goto EXIT;
+    return RE_OUT_OF_MEMORY;
   }
 
   char *keyd = strdup(key);
-
-  int re = hashmap_set(kv_hashmap, keyd, value_container);
-
-  if (re != RE_SUCCESS) {
-    free(keyd);
-    free(value_container);
-    return_value = re;
-    goto EXIT;
-  }
-
   size_t value_len = strlen(value);
   value_container->string = malloc(sizeof(string_t) + value_len);
   value_container->key = keyd;
@@ -100,71 +73,46 @@ int insert_kv(char *key, char *value, uint64_t expiry_ms) {
     hashmap_resize(&kv_hashmap, kv_hashmap->capacity * 2);
   }
 
-  return_value = RE_SUCCESS;
+  pthread_rwlock_wrlock(&rwlock);
 
-EXIT:
-  // what this lines do is like:
-  // hey other threads, I have done writing data, you can do whatever you want
-  writing = false;
-  pthread_cond_broadcast(&reading_lock_cond);
-  pthread_mutex_unlock(&write_mutex);
+  return_value = hashmap_set(kv_hashmap, keyd, value_container);
+
+  if (return_value != RE_SUCCESS) {
+    free(keyd);
+    free(value_container);
+  }
+
+  pthread_rwlock_unlock(&rwlock);
   return return_value;
 }
 
 int lookup_kv(char *key, string_ptr_t *value) {
-
-  // checking it there is a writing thread running and wait for it;
-  /*pthread_mutex_lock(&read_mutex);*/
-  if (writing)
-    pthread_cond_wait(&reading_lock_cond, &read_mutex);
-  /*pthread_mutex_unlock(&read_mutex);*/
 
   if (key == NULL || value == NULL)
     return RE_INVALID_ARGS;
 
   string_container_t *contianer = NULL;
 
+  pthread_rwlock_rdlock(&rwlock);
+
   if (hashmap_get(kv_hashmap, key, (void **)&contianer) != RE_SUCCESS) {
+    pthread_rwlock_unlock(&rwlock);
     return RE_KEY_NOT_FOUND;
   };
 
   *value = contianer->string;
 
+  pthread_rwlock_unlock(&rwlock);
   return RE_SUCCESS;
 }
 
-int lookup_kv_container(char *key, string_container_t **container) {
-
-  // checking it there is a writing thread running and wait for it;
-  pthread_mutex_lock(&read_mutex);
-  /*if (writing)*/
-  /*pthread_cond_wait(&reading_lock_cond, &read_mutex);*/
-  /*pthread_mutex_unlock(&read_mutex);*/
-
-  if (key == NULL || container == NULL)
-    return RE_INVALID_ARGS;
-
-  string_container_t *contianer = NULL;
-
-  if (hashmap_get(kv_hashmap, key, (void **)&contianer) != RE_SUCCESS) {
-    return RE_KEY_NOT_FOUND;
-  };
-
-  *container = contianer;
-
-  return RE_SUCCESS;
-}
 int delete_kv(char *key) {
-  // this will wait if the mutex is already locked until it's unlocked
-  // according to the man page of pthread_mutex_lock()
-  pthread_mutex_lock(&write_mutex);
-
-  string_container_t *value;
-  hashmap_get(kv_hashmap, key, (void **)&value);
-  dynamic_array_find_and_remove(timed_data_queue, value);
-
-  hashmap_del(kv_hashmap, key);
-
-  pthread_mutex_unlock(&write_mutex);
-  return RE_SUCCESS;
+  if (key == NULL) {
+    return RE_INVALID_ARGS;
+  }
+  int re = 0;
+  pthread_rwlock_wrlock(&rwlock);
+  re = hashmap_del(kv_hashmap, key);
+  pthread_rwlock_unlock(&rwlock);
+  return re;
 }

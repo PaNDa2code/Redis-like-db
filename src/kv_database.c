@@ -19,7 +19,8 @@ int init_kv_hashmap() {
 }
 
 void free_container(void *contianer) {
-  if (((string_container_t *)contianer)->expiry_time.tv_sec && !((string_container_t *)contianer)->expired) {
+  if (((string_container_t *)contianer)->expiry_time.tv_sec &&
+      !((string_container_t *)contianer)->expired) {
     cancel_container_timer(contianer);
   }
   free(((string_container_t *)contianer)->string);
@@ -80,8 +81,11 @@ int insert_kv(char *key, char *value, uint64_t expiry_ms) {
   if (return_value != RE_SUCCESS) {
     free(keyd);
     free(value_container);
+  } else {
+    if (kv_hashmap->max_collitions > 10 ||
+        (float)kv_hashmap->occupied_buckets / kv_hashmap->capacity >= 0.75)
+      hashmap_resize(&kv_hashmap, kv_hashmap->capacity * 2);
   }
-
   pthread_rwlock_unlock(&rwlock);
   return return_value;
 }

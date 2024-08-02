@@ -1,8 +1,6 @@
 #include "parse_command.h"
 #include "commands_functions.h"
 #include "data_structures.h"
-#include "dynamic_array.h"
-#include <string.h>
 
 int command_tokenize(char *input, string_tokens_t **str_ptr_array) {
   char *token;
@@ -26,8 +24,3 @@ int command_tokenize(char *input, string_tokens_t **str_ptr_array) {
   return RE_SUCCESS;
 };
 
-void free_string(string_ptr_t str) {
-  if (((string_ptr_t)str)->refrance_count <= 0) {
-    free(str);
-  }
-}

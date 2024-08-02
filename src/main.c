@@ -97,8 +97,7 @@ int main(int argc, char *argv[]) {
       perror("pthread_create");
       close(new_socket);
     } else {
-      LOG("Accepted connection - ip:%s:%d", inet_ntoa(address.sin_addr),
-          address.sin_port);
+      /*LOG("Accepted connection - ip:%s:%d", inet_ntoa(address.sin_addr), address.sin_port);*/
       dynamic_array_push(thread_pool, ptid);
 
       // detaching the threads so "The resources of TH will therefore be freed

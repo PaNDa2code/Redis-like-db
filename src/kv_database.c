@@ -3,10 +3,11 @@
 #include "expiry_cleaner.h"
 #include "hashmap.h"
 #include "timespec_util.h"
+#include "rwlock.h"
 
 hashmap_t *kv_hashmap;
 
-pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+rwlock_t rwlock = RWLOCK_INITIALIZER;
 
 void free_container(void *contianer);
 
@@ -28,10 +29,9 @@ void free_container(void *contianer) {
 }
 
 int cleanup_kv_hashmap() {
-  pthread_rwlock_wrlock(&rwlock);
+  w_lock(&rwlock);
   free_hashmap(kv_hashmap);
-  pthread_rwlock_unlock(&rwlock);
-  pthread_rwlock_destroy(&rwlock);
+  w_unlock(&rwlock);
   return RE_SUCCESS;
 }
 
@@ -74,7 +74,7 @@ int insert_kv(char *key, char *value, uint64_t expiry_ms) {
     hashmap_resize(&kv_hashmap, kv_hashmap->capacity * 2);
   }
 
-  pthread_rwlock_wrlock(&rwlock);
+  w_lock(&rwlock);
 
   return_value = hashmap_set(kv_hashmap, keyd, value_container);
 
@@ -86,7 +86,9 @@ int insert_kv(char *key, char *value, uint64_t expiry_ms) {
         (float)kv_hashmap->occupied_buckets / kv_hashmap->capacity >= 0.75)
       hashmap_resize(&kv_hashmap, kv_hashmap->capacity * 2);
   }
-  pthread_rwlock_unlock(&rwlock);
+
+  w_unlock(&rwlock);
+
   return return_value;
 }
 
@@ -97,16 +99,16 @@ int lookup_kv(char *key, string_ptr_t *value) {
 
   string_container_t *contianer = NULL;
 
-  pthread_rwlock_rdlock(&rwlock);
+  r_lock(&rwlock);
 
   if (hashmap_get(kv_hashmap, key, (void **)&contianer) != RE_SUCCESS) {
-    pthread_rwlock_unlock(&rwlock);
+    r_unlock(&rwlock);
     return RE_KEY_NOT_FOUND;
   };
 
   *value = contianer->string;
 
-  pthread_rwlock_unlock(&rwlock);
+  r_unlock(&rwlock);
   return RE_SUCCESS;
 }
 
@@ -115,8 +117,8 @@ int delete_kv(char *key) {
     return RE_INVALID_ARGS;
   }
   int re = 0;
-  pthread_rwlock_wrlock(&rwlock);
+  w_lock(&rwlock);
   re = hashmap_del(kv_hashmap, key);
-  pthread_rwlock_unlock(&rwlock);
+  w_unlock(&rwlock);
   return re;
 }

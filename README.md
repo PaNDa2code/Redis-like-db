@@ -7,5 +7,6 @@ Redis-Like-DB is a simple, in-memory key-value database implemented in C. It off
 - [x] basic `GET` and `SET`
 - [x] `PX` expiry data
 - [x] on-time data deletion to efficiently manage memory.
+- [ ] Polymorphism support
 - [ ] hash data types (`HGET`, `HSET` )
 - [ ] Configuration support (`CONFIG`)

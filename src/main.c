@@ -4,6 +4,7 @@
 #include "includes.h"
 #include "logger.h"
 #include "network.h"
+#include "config.h"
 #include <bits/getopt_core.h>
 #include <getopt.h>
 #include <pthread.h>
@@ -19,11 +20,11 @@ uint32_t maxclients = DEFUALT_MAX_CLIENTS;
 
 bool keep_running = true;
 int server_fd;
-int port_number = DEFUALT_PORT;
 
 void signal_handler(int sigint);
 
 extern int startup();
+extern config_option_t config[];
 
 int main(int argc, char *argv[]) {
 
@@ -57,7 +58,7 @@ int main(int argc, char *argv[]) {
 
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
-  address.sin_port = htons(port_number);
+  address.sin_port = htons(config[0].value_int);
 
   if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
     perror("bind");
@@ -70,7 +71,7 @@ int main(int argc, char *argv[]) {
   }
 
   /*printf("Listening on port %d\n", port_number);*/
-  LOG("Listening on port %d", port_number);
+  LOG("Listening on port %ld", config[0].value_int);
 
   while (keep_running) {
     if ((new_socket =
@@ -97,7 +98,8 @@ int main(int argc, char *argv[]) {
       perror("pthread_create");
       close(new_socket);
     } else {
-      /*LOG("Accepted connection - ip:%s:%d", inet_ntoa(address.sin_addr), address.sin_port);*/
+      /*LOG("Accepted connection - ip:%s:%d", inet_ntoa(address.sin_addr),
+       * address.sin_port);*/
       dynamic_array_push(thread_pool, ptid);
 
       // detaching the threads so "The resources of TH will therefore be freed
@@ -125,14 +127,16 @@ static inline void handler_args(int argc, char *argv[]) {
   int opt;
   int option_index = 0;
 
-  static struct option long_options[] = {{"port", required_argument, 0, 'p'},
-                                         {NULL, 0, 0, 0}};
+  static struct option long_options[] = {
+      {"port", required_argument, 0, 'p'},
+      {NULL, 0, 0, 0},
+  };
 
-  while ((opt = getopt_long(argc, argv, "p:", long_options, &option_index)) !=
-         -1) {
+  while (
+    (opt = getopt_long(argc, argv, "p:", long_options, &option_index)) != -1) {
     switch (opt) {
     case 'p':
-      port_number = atoi(optarg);
+      config[0].value_int = atoi(optarg);
       break;
     case '?':
       exit(1);

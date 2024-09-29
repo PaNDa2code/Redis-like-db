@@ -6,7 +6,14 @@
 #include "kv_database.h"
 
 int ping(string_tokens_t *command_tokens, int client_fd) {
-  SEND_C_STRING("+PONG\r\n");
+  if (command_tokens->tokens_count > 1) {
+    dprintf(client_fd, "$%llu\r\n%s\r\n",
+            (unsigned long long)strlen(command_tokens->tokens[1]),
+            command_tokens->tokens[1]);
+  } else {
+    char m[] = "+PONG\r\n";
+    send(client_fd, m, sizeof(m) - 1, 0);
+  }
   return 0;
 };
 
@@ -22,11 +29,8 @@ int kv_get(string_tokens_t *command_tokens, int client_fd) {
     SEND_C_STRING("$-1\r\n");
     return 0;
   }
-  size_t n;
-  char *buffer;
-  string_to_bulkstring(value, &buffer, &n);
-  send(client_fd, buffer, n, 0);
-  free(buffer);
+  dprintf(client_fd, "$%llu\r\n%s\r\n", (unsigned long long)value->length,
+          value->buffer);
   return RE_SUCCESS;
 }
 
@@ -46,9 +50,8 @@ int kv_set(string_tokens_t *command_tokens, int client_fd) {
       }
       expiry_ms = strtoull(command_tokens->tokens[4], NULL, 10);
     } else {
-      SEND_C_STRING("-Unkown keyword ");
-      /*SEND_C_STRING(command_tokens->tokens[3]);*/
-      SEND_C_STRING("\r\n");
+      dprintf(client_fd, "-Unkown keyword \'%s\'.\r\n",
+              command_tokens->tokens[3]);
     }
   }
 

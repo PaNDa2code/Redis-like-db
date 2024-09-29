@@ -4,6 +4,6 @@
 
 SERVER_PID=$(pgrep -f "./bin/Redis")
 
-redis-benchmark -t SET,GET -n 100000 -r 1000000000000 -c 100 -q --threads 5 -p 123
+redis-benchmark -t SET,GET -n 1000000 -r 1000000000000 -c 100 -q --threads 5 -p 123
 
 kill -2 $SERVER_PID

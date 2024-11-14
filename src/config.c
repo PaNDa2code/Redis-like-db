@@ -8,6 +8,7 @@ config_option_t config[] = {
     {"maxclients", OPT_INT, .value_int = 50},
     {"maxmemory", OPT_INT, .value_int = (int64_t)500 MB},
     {"role", OPT_STRING, .value_string = "master"},
+    {"quite_mode", OPT_INT, .value_int = 0},
 };
 
 int change_config_opt(char *opt_name, void *new_value, char new_value_type) {

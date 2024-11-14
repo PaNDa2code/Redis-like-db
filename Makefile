@@ -2,6 +2,8 @@ CC=gcc
 CF=-Iinclude
 LDF=-lm -lpthread
 
+MAKEFLAGS+=-j
+
 TARGET=bin/Redis
 OBJ_DIR=obj/
 SRC_DIR=src/

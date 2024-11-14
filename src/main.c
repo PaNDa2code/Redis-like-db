@@ -1,10 +1,11 @@
 #include "assci_art.h"
 #include "client_thread.h"
+#include "config.h"
 #include "dynamic_array.h"
 #include "includes.h"
 #include "logger.h"
 #include "network.h"
-#include "config.h"
+#include "rdb_parse.h"
 #include <bits/getopt_core.h>
 #include <getopt.h>
 #include <pthread.h>
@@ -32,7 +33,8 @@ int main(int argc, char *argv[]) {
 
   startup();
 
-  print_assci_art("Redis-Like-db", "PaNDa2code");
+  if (!config[4].value_int)
+    print_assci_art("Redis-Like-db", "PaNDa2code");
 
   signal(SIGINT, signal_handler);
 
@@ -129,14 +131,25 @@ static inline void handler_args(int argc, char *argv[]) {
 
   static struct option long_options[] = {
       {"port", required_argument, 0, 'p'},
+      {"quiet", no_argument, 0, 'q'},
+      {"dbfilename", required_argument, 0, 1},
       {NULL, 0, 0, 0},
   };
 
-  while (
-    (opt = getopt_long(argc, argv, "p:", long_options, &option_index)) != -1) {
+  while ((opt = getopt_long(argc, argv, "pq\x01:", long_options,
+                            &option_index)) != -1) {
     switch (opt) {
     case 'p':
       config[0].value_int = atoi(optarg);
+      break;
+    case 'q':
+      config[4].value_int = 1;
+      break;
+    case 1:
+      if (!optarg) {
+        printf("[x] optarg is null\n");
+      }
+      parse_RDB_file(optarg);
       break;
     case '?':
       exit(1);

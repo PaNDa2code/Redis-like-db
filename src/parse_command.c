@@ -18,12 +18,19 @@ int command_tokenize(char *input, string_tokens_t **str_ptr_array) {
 
   for (size_t i = 0; i < tokens_count; i++) {
     input = strchr(input, '$') + 1;
+
+    if (input == NULL)
+      return RE_FAILED;
+
     size_t strlen = strtoul(input, NULL, 10);
     input = strchr(input, '\n') + 1;
+
+    if (input == NULL)
+      return RE_FAILED;
+
     tokens[i] = input;
     input += strlen + 2;
     tokens[i][strlen] = 0;
   }
   return RE_SUCCESS;
 };
-

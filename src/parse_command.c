@@ -3,6 +3,9 @@
 #include "data_structures.h"
 
 int command_tokenize(char *input, string_tokens_t **str_ptr_array) {
+  if (input == NULL || str_ptr_array == NULL)
+    return RE_INVALID_ARGS;
+
   char *token;
 
   size_t tokens_count = strtoul(input + 1, &input, 10);
